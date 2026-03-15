@@ -7,7 +7,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from database.queries import Queries
-from keyboards.client import (
+from keyboards.reply import (
+    CLIENT_DELETE_PROFILE_CONFIRM_KB,
     CLIENT_EDIT_PROFILE_KB,
     CLIENT_MAIN_KB,
     CLIENT_MASTER_MODE_KB,
