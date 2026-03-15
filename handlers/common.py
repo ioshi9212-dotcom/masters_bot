@@ -1,5 +1,5 @@
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, StateFilter
 from aiogram.types import Message
 
 from keyboards.reply import START_ROLE_KB
@@ -15,6 +15,6 @@ async def start_cmd(message: Message) -> None:
     )
 
 
-@router.message(F.text == "🏠 Главное меню")
+@router.message(StateFilter(None), F.text == "🏠 Главное меню")
 async def to_main_menu(message: Message) -> None:
     await message.answer("Выберите роль через /start")
