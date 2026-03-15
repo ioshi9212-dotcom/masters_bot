@@ -178,6 +178,7 @@ MASTER_SERVICES_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="➕ Добавить услугу"), KeyboardButton(text="🗑 Удалить услугу")],
 MASTER_CLIENTS_TOP_KB = ReplyKeyboardMarkup(
+    ],
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать клиента"), KeyboardButton(text="🗑 Удалить клиента")],
         [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
