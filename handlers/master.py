@@ -12,7 +12,7 @@ from keyboards.reply import (
     PROFESSION_DONE_KB,
     YES_SKIP_KB,
 )
-from states.master_states import MasterRegistrationState
+from states.master_states import MasterDeleteProfileState, MasterRegistrationState
 from utils.dates import calculate_experience_text
 from utils.formatters import format_master_profile
 
@@ -44,7 +44,8 @@ async def keep_master_profile(message: Message) -> None:
 
 
 @router.message(F.text == "🗑 Удалить и создать новый")
-async def delete_master_profile(message: Message) -> None:
+async def delete_master_profile(message: Message, state: FSMContext) -> None:
+    await state.set_state(MasterDeleteProfileState.confirm)
     await message.answer(
         "⚠️ Если вы удалите профиль мастера, будут полностью удалены все ваши данные:\n\n"
         "• профиль мастера\n"
@@ -59,19 +60,21 @@ async def delete_master_profile(message: Message) -> None:
     )
 
 
-@router.message(F.text == "✅ Да, удалить")
+@router.message(MasterDeleteProfileState.confirm, F.text == "✅ Да, удалить")
 async def confirm_delete_master_profile(message: Message, state: FSMContext, db) -> None:
     conn = await db.connect()
     q = Queries(conn)
     await q.deactivate_master_profile(message.from_user.id)
     await conn.close()
 
+    await state.clear()
     await state.set_state(MasterRegistrationState.first_name)
     await message.answer("Старый профиль удалён. Введите имя для нового профиля мастера:")
 
 
-@router.message(F.text == "◀️ Отмена")
-async def cancel_delete_master_profile(message: Message) -> None:
+@router.message(MasterDeleteProfileState.confirm, F.text == "◀️ Отмена")
+async def cancel_delete_master_profile(message: Message, state: FSMContext) -> None:
+    await state.clear()
     await message.answer(
         "Удаление отменено.\n\n"
         "✅ Вы зарегистрированы как мастер.\n\n"

@@ -31,6 +31,14 @@ YES_SKIP_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+SKIP_BACK_HOME_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="⏭ Пропустить")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
+    ],
+    resize_keyboard=True,
+)
+
 PROFESSION_DONE_KB = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="✅ Готово")]],
     resize_keyboard=True,
@@ -53,6 +61,30 @@ CLIENT_PROFILE_KB = ReplyKeyboardMarkup(
 )
 
 MASTER_DELETE_CONFIRM_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="✅ Да, удалить")],
+        [KeyboardButton(text="◀️ Отмена"), KeyboardButton(text="🏠 Главное меню")],
+    ],
+    resize_keyboard=True,
+)
+
+MASTER_BOOKING_ENTRY_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="👥 Мои клиенты"), KeyboardButton(text="➕ Добавить клиента")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
+    ],
+    resize_keyboard=True,
+)
+
+MASTER_CLIENTS_TOP_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="✏️ Редактировать клиента"), KeyboardButton(text="🗑 Удалить клиента")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
+    ],
+    resize_keyboard=True,
+)
+
+CONFIRM_DELETE_CLIENT_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✅ Да, удалить")],
         [KeyboardButton(text="◀️ Отмена"), KeyboardButton(text="🏠 Главное меню")],

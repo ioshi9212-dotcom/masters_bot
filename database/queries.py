@@ -130,3 +130,109 @@ class Queries:
         mid = master["id"]
         await self.conn.execute("DELETE FROM masters WHERE id = ?", (mid,))
         await self.conn.commit()
+
+    async def list_master_clients(self, master_id: int):
+        cur = await self.conn.execute(
+            """
+            SELECT c.*
+            FROM clients c
+            JOIN client_masters cm ON cm.client_id = c.id
+            WHERE cm.master_id = ? AND c.is_active = 1
+            ORDER BY c.first_name, c.last_name, c.id
+            """,
+            (master_id,),
+        )
+        return await cur.fetchall()
+
+    async def get_master_client(self, master_id: int, client_id: int):
+        cur = await self.conn.execute(
+            """
+            SELECT c.*
+            FROM clients c
+            JOIN client_masters cm ON cm.client_id = c.id
+            WHERE cm.master_id = ? AND c.id = ? AND c.is_active = 1
+            """,
+            (master_id, client_id),
+        )
+        return await cur.fetchone()
+
+    async def create_manual_client_for_master(self, master_id: int, data: dict) -> int:
+        now = datetime.now(timezone.utc).isoformat()
+        cur = await self.conn.execute(
+            """
+            INSERT INTO clients (
+                telegram_id, username, first_name, last_name, phone, birth_date,
+                created_by, is_registered, is_active, no_show_count, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, 'master', 0, 1, 0, ?, ?)
+            """,
+            (
+                None,
+                None,
+                data["first_name"],
+                data["last_name"],
+                data.get("phone"),
+                data.get("birth_date"),
+                now,
+                now,
+            ),
+        )
+        client_id = cur.lastrowid
+        await self.conn.execute(
+            """
+            INSERT INTO client_masters (client_id, master_id, created_at, updated_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (client_id, master_id, now, now),
+        )
+        await self.conn.commit()
+        return client_id
+
+    async def update_manual_client(self, client_id: int, data: dict) -> bool:
+        now = datetime.now(timezone.utc).isoformat()
+        cur = await self.conn.execute(
+            """
+            UPDATE clients
+            SET first_name = ?, last_name = ?, phone = ?, birth_date = ?, updated_at = ?
+            WHERE id = ? AND created_by = 'master'
+            """,
+            (
+                data["first_name"],
+                data["last_name"],
+                data.get("phone"),
+                data.get("birth_date"),
+                now,
+                client_id,
+            ),
+        )
+        await self.conn.commit()
+        return cur.rowcount > 0
+
+    async def delete_client_from_master(self, master_id: int, client_id: int) -> None:
+        await self.conn.execute(
+            """
+            DELETE FROM appointments
+            WHERE master_id = ?
+              AND client_id = ?
+              AND status = 'scheduled'
+              AND appointment_date >= date('now')
+            """,
+            (master_id, client_id),
+        )
+
+        await self.conn.execute(
+            "DELETE FROM client_masters WHERE master_id = ? AND client_id = ?",
+            (master_id, client_id),
+        )
+
+        links_cur = await self.conn.execute(
+            "SELECT COUNT(*) AS cnt FROM client_masters WHERE client_id = ?",
+            (client_id,),
+        )
+        links_count = (await links_cur.fetchone())["cnt"]
+
+        client_cur = await self.conn.execute("SELECT created_by FROM clients WHERE id = ?", (client_id,))
+        client = await client_cur.fetchone()
+        if client and links_count == 0 and client["created_by"] == "master":
+            await self.conn.execute("DELETE FROM clients WHERE id = ?", (client_id,))
+
+        await self.conn.commit()
