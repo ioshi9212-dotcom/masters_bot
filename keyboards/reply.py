@@ -71,10 +71,15 @@ MASTER_BOOKING_ENTRY_KB = ReplyKeyboardMarkup(
 MASTER_CLIENTS_TOP_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать клиента"), KeyboardButton(text="🗑 Удалить клиента")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")]
+    ],
+    resize_keyboard=True,
+)
+
 CLIENT_PROFILE_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать профиль"), KeyboardButton(text="🗑 Удалить профиль")],
-        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")]
     ],
     resize_keyboard=True,
 )
