@@ -149,11 +149,16 @@ CONFIRM_DELETE_ALL_WINDOWS_KB = ReplyKeyboardMarkup(
 
 MASTER_WAITLIST_KB = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📅 Ближайшие окна"), KeyboardButton(text="🗓 Определенная дата")],
+        [KeyboardButton(text="📅 Ближайшие окна"), KeyboardButton(text="📆 Определенная дата")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")]
+    ],
+    resize_keyboard=True,
+)
+
 MASTER_BOOKING_ENTRY_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="👥 Мои клиенты"), KeyboardButton(text="➕ Добавить клиента")],
-        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")]
     ],
     resize_keyboard=True,
 )
