@@ -71,12 +71,16 @@ MASTER_BOOKING_ENTRY_KB = ReplyKeyboardMarkup(
 MASTER_CLIENTS_TOP_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать клиента"), KeyboardButton(text="🗑 Удалить клиента")],
+CLIENT_PROFILE_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="✏️ Редактировать профиль"), KeyboardButton(text="🗑 Удалить профиль")],
         [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
 
 CONFIRM_DELETE_CLIENT_KB = ReplyKeyboardMarkup(
+MASTER_DELETE_CONFIRM_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✅ Да, удалить")],
         [KeyboardButton(text="◀️ Отмена"), KeyboardButton(text="🏠 Главное меню")],
@@ -134,6 +138,9 @@ CONFIRM_DELETE_ALL_WINDOWS_KB = ReplyKeyboardMarkup(
 MASTER_WAITLIST_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📅 Ближайшие окна"), KeyboardButton(text="🗓 Определенная дата")],
+MASTER_BOOKING_ENTRY_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="👥 Мои клиенты"), KeyboardButton(text="➕ Добавить клиента")],
         [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
@@ -153,6 +160,9 @@ MASTER_CABINET_KB = ReplyKeyboardMarkup(
 MASTER_SERVICES_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="➕ Добавить услугу"), KeyboardButton(text="🗑 Удалить услугу")],
+MASTER_CLIENTS_TOP_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="✏️ Редактировать клиента"), KeyboardButton(text="🗑 Удалить клиента")],
         [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,

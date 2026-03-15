@@ -24,3 +24,7 @@ class ClientBookingState(StatesGroup):
 
 class ClientMastersState(StatesGroup):
     pick_master = State()
+    first_name = State()
+    last_name = State()
+    phone = State()
+    birth_date = State()

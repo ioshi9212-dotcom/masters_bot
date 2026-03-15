@@ -329,12 +329,14 @@ async def edit_client_phone(message: Message, state: FSMContext) -> None:
 async def edit_client_birth(message: Message, state: FSMContext, db) -> None:
     birth_date = None if message.text == "⏭ Пропустить" else message.text.strip()
     data = await state.get_data()
+    client_id = data["edit_client_id"]
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
     await q.update_manual_client(
         data["edit_client_id"],
+        client_id,
         {
             "first_name": data["first_name"],
             "last_name": data["last_name"],
@@ -376,6 +378,7 @@ async def delete_select_client(message: Message, state: FSMContext, db) -> None:
 @router.message(MasterClientDeleteState.confirm, F.text == "✅ Да, удалить")
 async def confirm_delete_client(message: Message, state: FSMContext, db) -> None:
     data = await state.get_data()
+    client_id = data["delete_client_id"]
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
