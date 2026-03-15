@@ -85,10 +85,17 @@ CLIENT_PROFILE_KB = ReplyKeyboardMarkup(
 )
 
 CONFIRM_DELETE_CLIENT_KB = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="✅ Да, удалить")],
+        [KeyboardButton(text="❌ Отмена"), KeyboardButton(text="🏠 Главное меню")]
+    ],
+    resize_keyboard=True,
+)
+
 MASTER_DELETE_CONFIRM_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✅ Да, удалить")],
-        [KeyboardButton(text="◀️ Отмена"), KeyboardButton(text="🏠 Главное меню")],
+        [KeyboardButton(text="❌ Отмена"), KeyboardButton(text="🏠 Главное меню")]
     ],
     resize_keyboard=True,
 )
