@@ -117,7 +117,7 @@ async def keep_master_profile(message: Message) -> None:
         "🕒 Свободные окна — управлять окнами для онлайн-записи.\n"
         "⏳ Лист ожидания — клиенты, которые ждут окно.\n"
         "👤 Кабинет мастера — профиль, услуги, настройки, статистика.\n"
-        "👤 Режим клиента — посмотреть бот глазами клиента.",
+        "👤 Меню клиента — перейти в клиентское меню и проверить сценарий записи.",
         reply_markup=MASTER_MAIN_KB
     )
 
@@ -258,13 +258,13 @@ async def m_address(message: Message, state: FSMContext, db) -> None:
 
 
 
-@router.message(F.text == "👤 Режим клиента")
+@router.message(F.text == "👤 Меню клиента")
 async def switch_to_client_mode(message: Message, state: FSMContext, db) -> None:
     from keyboards.reply import CLIENT_MASTER_MODE_KB
 
     await state.clear()
     await message.answer(
-        "Режим клиента включён 👇\n\n"
+        "Меню клиента открыто 👇\n\n"
         "Здесь вы можете проверить клиентский сценарий записи и вернуться кнопкой «🔁 Вернуться в режим мастера».",
         reply_markup=CLIENT_MASTER_MODE_KB,
     )

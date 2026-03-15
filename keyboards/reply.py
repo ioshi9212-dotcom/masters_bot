@@ -11,7 +11,7 @@ MASTER_MAIN_KB = ReplyKeyboardMarkup(
         [KeyboardButton(text="✍️ Записать клиента"), KeyboardButton(text="📅 Посмотреть записи")],
         [KeyboardButton(text="🕒 Свободные окна"), KeyboardButton(text="⏳ Лист ожидания")],
         [KeyboardButton(text="👤 Кабинет мастера")],
-        [KeyboardButton(text="👤 Режим клиента")],
+        [KeyboardButton(text="👤 Меню клиента")],
     ],
     resize_keyboard=True,
 )
