@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from database.queries import Queries
-from keyboards.reply import MASTER_EXISTS_KB, MASTER_MAIN_KB, YES_SKIP_KB
+from keyboards.reply import MASTER_EXISTS_KB, MASTER_MAIN_KB, PROFESSION_DONE_KB, YES_SKIP_KB
 from states.master_states import MasterRegistrationState
 from utils.dates import calculate_experience_text
 from utils.formatters import format_master_profile
@@ -60,7 +60,7 @@ async def m_last_name(message: Message, state: FSMContext) -> None:
     last_name = None if message.text == "⏭ Пропустить" else message.text.strip()
     await state.update_data(last_name=last_name, professions=[])
     await state.set_state(MasterRegistrationState.profession)
-    await message.answer("Введите профессию (например, Мастер маникюра):")
+    await message.answer("Введите профессию (например, Мастер маникюра):", reply_markup=PROFESSION_DONE_KB)
 
 
 @router.message(MasterRegistrationState.profession)
@@ -79,7 +79,7 @@ async def m_profession(message: Message, state: FSMContext) -> None:
 
     professions.append(text)
     await state.update_data(professions=professions)
-    await message.answer("Профессия добавлена. Добавьте ещё или нажмите ✅ Готово")
+    await message.answer("Профессия добавлена. Добавьте ещё или нажмите ✅ Готово", reply_markup=PROFESSION_DONE_KB)
 
 
 @router.message(MasterRegistrationState.birth_date)

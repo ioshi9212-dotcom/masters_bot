@@ -31,6 +31,11 @@ YES_SKIP_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
+PROFESSION_DONE_KB = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text="✅ Готово")]],
+    resize_keyboard=True,
+)
+
 MASTER_EXISTS_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✅ Оставить профиль")],
