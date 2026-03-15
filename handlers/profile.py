@@ -10,28 +10,28 @@ from utils.formatters import format_client_profile
 router = Router()
 
 
-@router.message(ClientProfileState.first_name)
+@router.message(ClientProfileState.create_first_name)
 async def c_first_name(message: Message, state: FSMContext) -> None:
     await state.update_data(first_name=message.text.strip())
-    await state.set_state(ClientProfileState.last_name)
+    await state.set_state(ClientProfileState.create_last_name)
     await message.answer("Введите фамилию:")
 
 
-@router.message(ClientProfileState.last_name)
+@router.message(ClientProfileState.create_last_name)
 async def c_last_name(message: Message, state: FSMContext) -> None:
     await state.update_data(last_name=message.text.strip())
-    await state.set_state(ClientProfileState.phone)
+    await state.set_state(ClientProfileState.create_phone)
     await message.answer("Введите номер телефона:")
 
 
-@router.message(ClientProfileState.phone)
+@router.message(ClientProfileState.create_phone)
 async def c_phone(message: Message, state: FSMContext) -> None:
     await state.update_data(phone=message.text.strip())
-    await state.set_state(ClientProfileState.birth_date)
+    await state.set_state(ClientProfileState.create_birth_date)
     await message.answer("Введите дату рождения (ДД.ММ):")
 
 
-@router.message(ClientProfileState.birth_date)
+@router.message(ClientProfileState.create_birth_date)
 async def c_birth_date(message: Message, state: FSMContext, db) -> None:
     await state.update_data(birth_date=message.text.strip())
     data = await state.get_data()
