@@ -94,7 +94,16 @@ async def choose_client(message: Message, db) -> None:
     await conn.close()
 
     if client:
-        await message.answer("Главное меню клиента 👇", reply_markup=await _client_menu_for_user(message, db))
+        await message.answer(
+            "Главное меню клиента 👇\n\n"
+            "👤 Мой профиль — ваши данные для записи.\n"
+            "✍️ Записаться — выбрать мастера и время.\n"
+            "🕒 Посмотреть свободные окна — увидеть ближайшие окна.\n"
+            "💅 Какой маникюр сделать? — идеи и вдохновение.\n"
+            "👩‍🎨 Мои мастера — контакты, адрес и прайс.\n"
+            "⏳ Лист ожидания — ждать уведомление об окне.",
+            reply_markup=await _client_menu_for_user(message, db)
+        )
         return
 
     await message.answer(
@@ -111,7 +120,16 @@ async def choose_client(message: Message, db) -> None:
         "👩‍🎨 Мои мастера — информация о мастере, адрес и прайс.\n\n"
         "⏳ Лист ожидания — уведомление, если появится свободное окно."
     )
-    await message.answer("Главное меню клиента 👇", reply_markup=await _client_menu_for_user(message, db))
+    await message.answer(
+        "Главное меню клиента 👇\n\n"
+        "👤 Мой профиль — ваши данные для записи.\n"
+        "✍️ Записаться — выбрать мастера и время.\n"
+        "🕒 Посмотреть свободные окна — увидеть ближайшие окна.\n"
+        "💅 Какой маникюр сделать? — идеи и вдохновение.\n"
+        "👩‍🎨 Мои мастера — контакты, адрес и прайс.\n"
+        "⏳ Лист ожидания — ждать уведомление об окне.",
+        reply_markup=await _client_menu_for_user(message, db),
+    )
 
 
 @router.message(F.text == "🔁 Вернуться в режим мастера")
@@ -575,6 +593,24 @@ async def see_free_windows(message: Message, db) -> None:
     else:
         await message.answer("\n\n".join(chunks))
 
+
+
+
+@router.message(F.text == "💅 Какой маникюр сделать?")
+async def manicure_ideas(message: Message) -> None:
+    await message.answer(
+        "💅 Здесь будут идеи маникюра и подбор по сезону/стилю.\n"
+        "Пока раздел в базовой версии — скоро расширим примерами."
+    )
+
+
+@router.message(F.text == "⏳ Лист ожидания")
+async def client_waitlist_info(message: Message) -> None:
+    await message.answer(
+        "⏳ Лист ожидания\n\n"
+        "📅 Ближайшие окна — уведомление на первое освободившееся время.\n"
+        "🗓 Определенная дата — уведомление по выбранным датам."
+    )
 
 @router.message(F.text == "◀️ Назад")
 async def client_back(message: Message, state: FSMContext, db) -> None:

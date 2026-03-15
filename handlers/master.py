@@ -82,19 +82,44 @@ async def choose_master(message: Message, state: FSMContext, db) -> None:
 
     if master:
         await message.answer(
+            "✨ Добро пожаловать в систему записи.\n\n"
+            "Этот бот помогает мастеру:\n"
+            "— вести запись клиентов\n"
+            "— автоматически напоминать о записях\n"
+            "— хранить базу клиентов\n"
+            "— видеть статистику работы"
+        )
+        await message.answer(
             "✅ Вы зарегистрированы как мастер.\n\n"
             "Вы хотите оставить этот профиль или удалить его и создать новый?",
             reply_markup=MASTER_EXISTS_KB,
         )
         return
 
+    await message.answer(
+        "✨ Добро пожаловать в систему записи.\n\n"
+        "Этот бот помогает мастеру:\n"
+        "— вести запись клиентов\n"
+        "— автоматически напоминать о записях\n"
+        "— хранить базу клиентов\n"
+        "— видеть статистику работы"
+    )
     await state.set_state(MasterRegistrationState.first_name)
-    await message.answer("✨ Добро пожаловать в систему записи.\n\nВведите ваше имя:")
+    await message.answer("Введите ваше имя:")
 
 
 @router.message(F.text == "✅ Оставить профиль")
 async def keep_master_profile(message: Message) -> None:
-    await message.answer("Главное меню мастера открыто 👇", reply_markup=MASTER_MAIN_KB)
+    await message.answer(
+        "Главное меню мастера открыто 👇\n\n"
+        "✍️ Записать клиента — добавить запись вручную.\n"
+        "📅 Посмотреть записи — список будущих записей.\n"
+        "🕒 Свободные окна — управлять окнами для онлайн-записи.\n"
+        "⏳ Лист ожидания — клиенты, которые ждут окно.\n"
+        "👤 Кабинет мастера — профиль, услуги, настройки, статистика.\n"
+        "👤 Режим клиента — посмотреть бот глазами клиента.",
+        reply_markup=MASTER_MAIN_KB
+    )
 
 
 @router.message(F.text == "🗑 Удалить и создать новый")
@@ -238,12 +263,24 @@ async def switch_to_client_mode(message: Message, state: FSMContext, db) -> None
     from keyboards.reply import CLIENT_MASTER_MODE_KB
 
     await state.clear()
-    await message.answer("Режим клиента включён 👇", reply_markup=CLIENT_MASTER_MODE_KB)
+    await message.answer(
+        "Режим клиента включён 👇\n\n"
+        "Здесь вы можете проверить клиентский сценарий записи и вернуться кнопкой «🔁 Вернуться в режим мастера».",
+        reply_markup=CLIENT_MASTER_MODE_KB,
+    )
 
 @router.message(F.text == "👤 Кабинет мастера")
 async def master_cabinet(message: Message, state: FSMContext) -> None:
     await state.set_state(MasterCabinetState.menu)
-    await message.answer("👤 Кабинет мастера", reply_markup=MASTER_CABINET_KB)
+    await message.answer(
+        "👤 Кабинет мастера\n\n"
+        "💰 Прайс — посмотреть услуги и изменить стоимость.\n"
+        "✂️ Услуги — добавить или удалить услугу.\n"
+        "👤 Профиль мастера — ваши данные и редактирование.\n"
+        "⚙️ Настройки записи — шаг, время и ограничения записи.\n"
+        "📊 Статистика — показатели за период.",
+        reply_markup=MASTER_CABINET_KB,
+    )
 
 
 @router.message(MasterCabinetState.menu, F.text == "💰 Прайс")
