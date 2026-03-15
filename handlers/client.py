@@ -15,8 +15,9 @@ from keyboards.reply import (
     CLIENT_NO_PROFILE_KB,
     CLIENT_PROFILE_KB,
     CLIENT_WRITE_MASTER_KB,
-    MASTER_MAIN_KB,
 )
+from keyboards.confirm import CLIENT_DELETE_PROFILE_CONFIRM_KB
+from keyboards.master import MASTER_MAIN_KB
 from states.client_states import ClientBookingState, ClientMastersState, ClientProfileState
 from utils.formatters import format_client_profile
 

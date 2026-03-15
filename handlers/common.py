@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.filters import CommandStart, StateFilter
 from aiogram.types import Message
 
-from keyboards.reply import START_ROLE_KB
+from keyboards.common import START_ROLE_KB
 
 router = Router()
 

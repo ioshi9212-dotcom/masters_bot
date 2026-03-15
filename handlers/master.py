@@ -7,10 +7,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from database.queries import Queries
-from keyboards.reply import (
+from keyboards.common import PROFESSION_DONE_KB, YES_SKIP_KB
+from keyboards.confirm import MASTER_CONFIRM_DELETE_SERVICE_KB, MASTER_DELETE_CONFIRM_KB
+from keyboards.master import (
     MASTER_CABINET_KB,
-    MASTER_CONFIRM_DELETE_SERVICE_KB,
-    MASTER_DELETE_CONFIRM_KB,
     MASTER_EXISTS_KB,
     MASTER_MAIN_KB,
     MASTER_PROFILE_EDIT_KB,
@@ -18,8 +18,6 @@ from keyboards.reply import (
     MASTER_SERVICES_KB,
     MASTER_SETTINGS_KB,
     MASTER_STATS_PERIOD_KB,
-    PROFESSION_DONE_KB,
-    YES_SKIP_KB,
 )
 from states.master_states import MasterCabinetState, MasterDeleteProfileState, MasterRegistrationState
 from utils.dates import calculate_experience_text
@@ -260,7 +258,7 @@ async def m_address(message: Message, state: FSMContext, db) -> None:
 
 @router.message(F.text == "👤 Меню клиента")
 async def switch_to_client_mode(message: Message, state: FSMContext, db) -> None:
-    from keyboards.reply import CLIENT_MASTER_MODE_KB
+    from keyboards.client import CLIENT_MASTER_MODE_KB
 
     await state.clear()
     await message.answer(

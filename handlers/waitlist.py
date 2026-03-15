@@ -1,7 +1,7 @@
 from aiogram import F, Router
 from aiogram.types import Message
 
-from keyboards.reply import MASTER_WAITLIST_KB
+from keyboards.master import MASTER_WAITLIST_KB
 
 router = Router()
 
