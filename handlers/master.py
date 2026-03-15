@@ -231,6 +231,15 @@ async def m_address(message: Message, state: FSMContext, db) -> None:
     )
 
 
+
+
+@router.message(F.text == "👤 Режим клиента")
+async def switch_to_client_mode(message: Message, state: FSMContext, db) -> None:
+    from keyboards.reply import CLIENT_MASTER_MODE_KB
+
+    await state.clear()
+    await message.answer("Режим клиента включён 👇", reply_markup=CLIENT_MASTER_MODE_KB)
+
 @router.message(F.text == "👤 Кабинет мастера")
 async def master_cabinet(message: Message, state: FSMContext) -> None:
     await state.set_state(MasterCabinetState.menu)

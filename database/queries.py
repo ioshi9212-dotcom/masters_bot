@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from database.models import SCHEMA_SQL
 
@@ -547,3 +547,198 @@ class Queries:
             "sleeping": row["sleeping"],
             "new_clients": new_clients,
         }
+
+
+    async def ensure_client_from_telegram(self, telegram_id: int, username: str | None) -> int | None:
+        client = await self.get_client_by_telegram_id(telegram_id)
+        return client["id"] if client else None
+
+    async def get_master_by_code(self, master_code: str):
+        cur = await self.conn.execute(
+            "SELECT * FROM masters WHERE master_code = ? AND is_active = 1",
+            (master_code,),
+        )
+        return await cur.fetchone()
+
+    async def is_client_linked_to_master(self, client_id: int, master_id: int) -> bool:
+        cur = await self.conn.execute(
+            "SELECT 1 FROM client_masters WHERE client_id = ? AND master_id = ?",
+            (client_id, master_id),
+        )
+        return await cur.fetchone() is not None
+
+    async def link_client_to_master(self, client_id: int, master_id: int) -> bool:
+        if await self.is_client_linked_to_master(client_id, master_id):
+            return False
+        now = datetime.now(timezone.utc).isoformat()
+        await self.conn.execute(
+            "INSERT INTO client_masters (client_id, master_id, created_at, updated_at) VALUES (?, ?, ?, ?)",
+            (client_id, master_id, now, now),
+        )
+        await self.conn.commit()
+        return True
+
+    async def list_client_masters(self, client_id: int):
+        cur = await self.conn.execute(
+            """
+            SELECT m.*
+            FROM masters m
+            JOIN client_masters cm ON cm.master_id = m.id
+            WHERE cm.client_id = ? AND m.is_active = 1
+            ORDER BY m.first_name, m.last_name, m.id
+            """,
+            (client_id,),
+        )
+        return await cur.fetchall()
+
+    async def list_master_active_services(self, master_id: int):
+        return await self.list_master_services(master_id, active_only=True)
+
+    async def list_available_windows_for_service(self, master_id: int, service_id: int):
+        service = await self.get_service_by_id(master_id, service_id)
+        if not service:
+            return []
+        duration = service["duration_minutes"]
+
+        settings = await self.get_booking_settings(master_id)
+        booking_range_days = settings["booking_range_days"] if settings else 14
+
+        cur = await self.conn.execute(
+            """
+            SELECT fw.*
+            FROM free_windows fw
+            WHERE fw.master_id = ?
+              AND fw.is_active = 1
+              AND fw.window_date >= date('now')
+              AND fw.window_date <= date('now', ?)
+              AND (
+                (strftime('%s', '2000-01-01 ' || fw.end_time) - strftime('%s', '2000-01-01 ' || fw.start_time)) / 60
+              ) >= ?
+            ORDER BY fw.window_date, fw.start_time
+            """,
+            (master_id, f"+{booking_range_days} day", duration),
+        )
+        return await cur.fetchall()
+
+    async def get_free_window_for_master(self, master_id: int, window_id: int):
+        cur = await self.conn.execute(
+            "SELECT * FROM free_windows WHERE id = ? AND master_id = ? AND is_active = 1",
+            (window_id, master_id),
+        )
+        return await cur.fetchone()
+
+    async def create_client_appointment_from_window(self, master_id: int, client_id: int, service_id: int, window_id: int):
+        service = await self.get_service_by_id(master_id, service_id)
+        window = await self.get_free_window_for_master(master_id, window_id)
+        if not service or not window:
+            return None
+
+        duration = service["duration_minutes"]
+        start = datetime.strptime(window["start_time"], "%H:%M")
+        end = start + timedelta(minutes=duration)
+        end_time = end.strftime("%H:%M")
+
+        # check overlaps
+        overlap_cur = await self.conn.execute(
+            """
+            SELECT 1
+            FROM appointments
+            WHERE master_id = ?
+              AND appointment_date = ?
+              AND status = 'scheduled'
+              AND NOT (end_time <= ? OR start_time >= ?)
+            LIMIT 1
+            """,
+            (master_id, window["window_date"], window["start_time"], end_time),
+        )
+        if await overlap_cur.fetchone():
+            return None
+
+        now = datetime.now(timezone.utc).isoformat()
+        cur = await self.conn.execute(
+            """
+            INSERT INTO appointments (
+                master_id, client_id, service_id, appointment_date, start_time, end_time,
+                duration_minutes, price_amount, status, created_by, is_confirmed_by_client,
+                cancelled_by, no_show_status, included_in_stats, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', 'client', 0, NULL, 'pending', 0, ?, ?)
+            """,
+            (
+                master_id,
+                client_id,
+                service_id,
+                window["window_date"],
+                window["start_time"],
+                end_time,
+                duration,
+                service["price"],
+                now,
+                now,
+            ),
+        )
+        appointment_id = cur.lastrowid
+
+        await self.conn.execute("DELETE FROM free_windows WHERE id = ?", (window_id,))
+        await self.conn.commit()
+
+        out_cur = await self.conn.execute(
+            """
+            SELECT a.*, s.name AS service_name, m.telegram_id AS master_telegram_id
+            FROM appointments a
+            LEFT JOIN services s ON s.id = a.service_id
+            LEFT JOIN masters m ON m.id = a.master_id
+            WHERE a.id = ?
+            """,
+            (appointment_id,),
+        )
+        return await out_cur.fetchone()
+
+    async def get_client_with_id(self, client_id: int):
+        cur = await self.conn.execute("SELECT * FROM clients WHERE id = ?", (client_id,))
+        return await cur.fetchone()
+
+    async def delete_client_profile_with_future_appointments(self, telegram_id: int):
+        client = await self.get_client_by_telegram_id(telegram_id)
+        if not client:
+            return []
+        client_id = client["id"]
+
+        masters_cur = await self.conn.execute(
+            """
+            SELECT DISTINCT m.telegram_id AS tg_id
+            FROM appointments a
+            JOIN masters m ON m.id = a.master_id
+            WHERE a.client_id = ?
+              AND a.status = 'scheduled'
+              AND a.appointment_date >= date('now')
+            """,
+            (client_id,),
+        )
+        masters_to_notify = [r["tg_id"] for r in await masters_cur.fetchall() if r["tg_id"]]
+
+        future_cur = await self.conn.execute(
+            """
+            SELECT *
+            FROM appointments
+            WHERE client_id = ?
+              AND status = 'scheduled'
+              AND appointment_date >= date('now')
+            """,
+            (client_id,),
+        )
+        for ap in await future_cur.fetchall():
+            await self.restore_free_window_from_appointment(ap)
+
+        await self.conn.execute(
+            """
+            DELETE FROM appointments
+            WHERE client_id = ?
+              AND status = 'scheduled'
+              AND appointment_date >= date('now')
+            """,
+            (client_id,),
+        )
+        await self.conn.execute("DELETE FROM client_masters WHERE client_id = ?", (client_id,))
+        await self.conn.execute("DELETE FROM clients WHERE id = ?", (client_id,))
+        await self.conn.commit()
+        return masters_to_notify
