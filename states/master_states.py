@@ -57,7 +57,6 @@ class MasterWindowsState(StatesGroup):
 
 class MasterCabinetState(StatesGroup):
     menu = State()
-    stats_period = State()
     price_edit_pick_service = State()
     price_edit_enter_value = State()
     services_menu = State()

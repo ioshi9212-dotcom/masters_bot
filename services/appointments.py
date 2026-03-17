@@ -35,3 +35,4 @@ def is_slot_available(
             return False, slot_end
 
     return True, slot_end
+"""Бизнес-логика записей (каркас для дальнейшего расширения)."""
