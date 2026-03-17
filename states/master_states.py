@@ -81,3 +81,15 @@ class MasterCabinetState(StatesGroup):
     settings_range = State()
     settings_duration = State()
     settings_limit = State()
+
+
+class ServiceCreateState(StatesGroup):
+    name = State()
+    description = State()
+    duration = State()
+    price = State()
+
+
+class ServiceEditPriceState(StatesGroup):
+    pick_service = State()
+    new_price = State()

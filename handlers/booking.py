@@ -17,6 +17,7 @@ from keyboards.master import (
     MASTER_APPOINTMENTS_KB,
     MASTER_BOOKING_ENTRY_KB,
     MASTER_CLIENTS_TOP_KB,
+    MASTER_MAIN_KB,
     MASTER_WINDOWS_KB,
 )
 from states.master_states import (
@@ -774,8 +775,118 @@ async def windows_delete_all_cancel(message: Message, state: FSMContext) -> None
 # common back for booking sub-flows
 @router.message(F.text == "◀️ Назад")
 async def booking_back(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    await message.answer("Возврат в раздел ✍️ Записать клиента.", reply_markup=MASTER_BOOKING_ENTRY_KB)
+    current = await state.get_state()
+    if not current:
+        return
+
+    if current == MasterClientsState.viewing.state:
+        await state.clear()
+        await message.answer("Возврат в раздел ✍️ Записать клиента.", reply_markup=MASTER_BOOKING_ENTRY_KB)
+        return
+
+    if current == MasterClientCreateState.first_name.state:
+        await state.clear()
+        await message.answer("Возврат в раздел ✍️ Записать клиента.", reply_markup=MASTER_BOOKING_ENTRY_KB)
+        return
+    if current == MasterClientCreateState.last_name.state:
+        await state.set_state(MasterClientCreateState.first_name)
+        await message.answer("Введите имя клиента:", reply_markup=MASTER_BOOKING_ENTRY_KB)
+        return
+    if current == MasterClientCreateState.phone.state:
+        await state.set_state(MasterClientCreateState.last_name)
+        await message.answer("Введите фамилию клиента:")
+        return
+    if current == MasterClientCreateState.birth_date.state:
+        await state.set_state(MasterClientCreateState.phone)
+        await message.answer("Введите номер телефона или нажмите ⏭ Пропустить", reply_markup=SKIP_BACK_HOME_KB)
+        return
+
+    if current == MasterClientEditState.select_client.state:
+        await state.set_state(MasterClientsState.viewing)
+        await message.answer("Выберите клиента:", reply_markup=MASTER_CLIENTS_TOP_KB)
+        return
+    if current == MasterClientEditState.first_name.state:
+        await state.set_state(MasterClientEditState.select_client)
+        await message.answer("Выберите клиента для редактирования:")
+        return
+    if current == MasterClientEditState.last_name.state:
+        await state.set_state(MasterClientEditState.first_name)
+        await message.answer("Введите новое имя клиента:")
+        return
+    if current == MasterClientEditState.phone.state:
+        await state.set_state(MasterClientEditState.last_name)
+        await message.answer("Введите новую фамилию клиента:")
+        return
+    if current == MasterClientEditState.birth_date.state:
+        await state.set_state(MasterClientEditState.phone)
+        await message.answer("Введите новый номер телефона или нажмите ⏭ Пропустить", reply_markup=SKIP_BACK_HOME_KB)
+        return
+
+    if current == MasterClientDeleteState.select_client.state:
+        await state.set_state(MasterClientsState.viewing)
+        await message.answer("Возврат к списку клиентов.", reply_markup=MASTER_CLIENTS_TOP_KB)
+        return
+    if current == MasterClientDeleteState.confirm.state:
+        await state.set_state(MasterClientDeleteState.select_client)
+        await message.answer("Выберите клиента для удаления:")
+        return
+
+    if current == MasterAppointmentsState.viewing.state:
+        await state.clear()
+        await message.answer("Главное меню мастера 👇", reply_markup=MASTER_MAIN_KB)
+        return
+    if current == MasterAppointmentsState.delete_pick_date.state:
+        await state.set_state(MasterAppointmentsState.viewing)
+        await message.answer("Возврат к списку записей.", reply_markup=MASTER_APPOINTMENTS_KB)
+        return
+    if current == MasterAppointmentsState.delete_pick_item.state:
+        await state.set_state(MasterAppointmentsState.delete_pick_date)
+        await message.answer("Выберите дату:")
+        return
+    if current == MasterAppointmentsState.delete_confirm_all.state:
+        await state.set_state(MasterAppointmentsState.viewing)
+        await message.answer("Удаление отменено.", reply_markup=MASTER_APPOINTMENTS_KB)
+        return
+
+    if current == MasterWindowsState.viewing.state:
+        await state.clear()
+        await message.answer("Главное меню мастера 👇", reply_markup=MASTER_MAIN_KB)
+        return
+    if current == MasterWindowsState.add_pick_date.state:
+        await state.set_state(MasterWindowsState.viewing)
+        await message.answer("Возврат в раздел свободных окон.", reply_markup=MASTER_WINDOWS_KB)
+        return
+    if current == MasterWindowsState.add_pick_time.state:
+        await state.set_state(MasterWindowsState.add_pick_date)
+        await message.answer("Выберите дату для добавления окна:")
+        return
+    if current == MasterWindowsState.delete_pick_date.state:
+        await state.set_state(MasterWindowsState.viewing)
+        await message.answer("Возврат в раздел свободных окон.", reply_markup=MASTER_WINDOWS_KB)
+        return
+    if current == MasterWindowsState.delete_pick_time.state:
+        await state.set_state(MasterWindowsState.delete_pick_date)
+        await message.answer("Выберите дату:")
+        return
+    if current == MasterWindowsState.delete_confirm_all.state:
+        await state.set_state(MasterWindowsState.viewing)
+        await message.answer("Удаление отменено.", reply_markup=MASTER_WINDOWS_KB)
+        return
+
+
+@router.message(F.text == "🏠 Главное меню")
+async def booking_home(message: Message, state: FSMContext) -> None:
+    current = await state.get_state()
+    if current and (
+        current.startswith("MasterClientsState")
+        or current.startswith("MasterClientCreateState")
+        or current.startswith("MasterClientEditState")
+        or current.startswith("MasterClientDeleteState")
+        or current.startswith("MasterAppointmentsState")
+        or current.startswith("MasterWindowsState")
+    ):
+        await state.clear()
+        await message.answer("Главное меню мастера 👇", reply_markup=MASTER_MAIN_KB)
 
 
 @router.message(F.text == "✍️ Записаться")

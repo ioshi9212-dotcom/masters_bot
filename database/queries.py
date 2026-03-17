@@ -5,6 +5,7 @@ import random
 from datetime import datetime, timedelta, timezone
 
 from database.models import SCHEMA_SQL
+from services.appointments import is_slot_available
 
 
 DEFAULT_MANUAL_DURATIONS = [30, 60, 90, 120, 150, 180, 210, 240]
@@ -594,6 +595,20 @@ class Queries:
     async def list_master_active_services(self, master_id: int):
         return await self.list_master_services(master_id, active_only=True)
 
+    async def list_scheduled_appointments_for_day(self, master_id: int, date_iso: str):
+        cur = await self.conn.execute(
+            """
+            SELECT start_time, end_time
+            FROM appointments
+            WHERE master_id = ?
+              AND appointment_date = ?
+              AND status = 'scheduled'
+            ORDER BY start_time
+            """,
+            (master_id, date_iso),
+        )
+        return await cur.fetchall()
+
     async def list_available_windows_for_service(self, master_id: int, service_id: int):
         service = await self.get_service_by_id(master_id, service_id)
         if not service:
@@ -618,6 +633,26 @@ class Queries:
             """,
             (master_id, f"+{booking_range_days} day", duration),
         )
+        windows = await cur.fetchall()
+        available = []
+        appointments_cache: dict[str, list] = {}
+
+        for window in windows:
+            date_iso = window["window_date"]
+            if date_iso not in appointments_cache:
+                appointments_cache[date_iso] = await self.list_scheduled_appointments_for_day(master_id, date_iso)
+
+            ok, _ = is_slot_available(
+                slot_start=window["start_time"],
+                duration_minutes=duration,
+                window_start=window["start_time"],
+                window_end=window["end_time"],
+                appointments=appointments_cache[date_iso],
+            )
+            if ok:
+                available.append(window)
+
+        return available
         return await cur.fetchall()
 
     async def get_free_window_for_master(self, master_id: int, window_id: int):
@@ -634,24 +669,15 @@ class Queries:
             return None
 
         duration = service["duration_minutes"]
-        start = datetime.strptime(window["start_time"], "%H:%M")
-        end = start + timedelta(minutes=duration)
-        end_time = end.strftime("%H:%M")
-
-        # check overlaps
-        overlap_cur = await self.conn.execute(
-            """
-            SELECT 1
-            FROM appointments
-            WHERE master_id = ?
-              AND appointment_date = ?
-              AND status = 'scheduled'
-              AND NOT (end_time <= ? OR start_time >= ?)
-            LIMIT 1
-            """,
-            (master_id, window["window_date"], window["start_time"], end_time),
+        appointments = await self.list_scheduled_appointments_for_day(master_id, window["window_date"])
+        available, end_time = is_slot_available(
+            slot_start=window["start_time"],
+            duration_minutes=duration,
+            window_start=window["start_time"],
+            window_end=window["end_time"],
+            appointments=appointments,
         )
-        if await overlap_cur.fetchone():
+        if not available:
             return None
 
         now = datetime.now(timezone.utc).isoformat()

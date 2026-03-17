@@ -15,9 +15,17 @@ from keyboards.master import (
     MASTER_MAIN_KB,
     MASTER_PROFILE_EDIT_KB,
     MASTER_PROFILE_VIEW_KB,
+    MASTER_SERVICES_LIST_KB,
     MASTER_SERVICES_KB,
     MASTER_SETTINGS_KB,
     MASTER_STATS_PERIOD_KB,
+)
+from states.master_states import (
+    MasterCabinetState,
+    MasterDeleteProfileState,
+    MasterRegistrationState,
+    ServiceCreateState,
+    ServiceEditPriceState,
 )
 from states.master_states import MasterCabinetState, MasterDeleteProfileState, MasterRegistrationState
 from utils.dates import calculate_experience_text
@@ -273,7 +281,7 @@ async def master_cabinet(message: Message, state: FSMContext) -> None:
     await message.answer(
         "👤 Кабинет мастера\n\n"
         "💰 Прайс — посмотреть услуги и изменить стоимость.\n"
-        "✂️ Услуги — добавить или удалить услугу.\n"
+        "🛠 Услуги — добавить, посмотреть, удалить услугу и изменить стоимость.\n"
         "👤 Профиль мастера — ваши данные и редактирование.\n"
         "⚙️ Настройки записи — шаг, время и ограничения записи.\n"
         "📊 Статистика — показатели за период.",
@@ -338,56 +346,58 @@ async def cabinet_price_update(message: Message, state: FSMContext, db) -> None:
     await message.answer("✅ Стоимость обновлена.", reply_markup=_services_pick_keyboard(services) if services else MASTER_CABINET_KB)
 
 
-@router.message(MasterCabinetState.menu, F.text == "✂️ Услуги")
+@router.message(MasterCabinetState.menu, F.text.in_({"🛠 Услуги", "✂️ Услуги"}))
 async def cabinet_services_menu(message: Message, state: FSMContext, db) -> None:
     conn, q, master = await _master_ctx(message, db)
     if not master:
         return
-    services = await q.list_master_services(master["id"], active_only=False)
     await conn.close()
-    text = "✂️ Услуги\n\n" + ("\n".join([f"• {s['name']}" for s in services]) if services else "Пока услуг нет.")
     await state.set_state(MasterCabinetState.services_menu)
-    await message.answer(text, reply_markup=MASTER_SERVICES_KB)
+    await message.answer("🛠 Меню услуг\n\nВыберите нужное действие:", reply_markup=MASTER_SERVICES_KB)
 
 
 @router.message(MasterCabinetState.services_menu, F.text == "➕ Добавить услугу")
 async def service_add_start(message: Message, state: FSMContext) -> None:
-    await state.set_state(MasterCabinetState.service_add_name)
+    await state.set_state(ServiceCreateState.name)
     await message.answer("Введите название услуги:")
 
 
-@router.message(MasterCabinetState.service_add_name)
+@router.message(ServiceCreateState.name)
 async def service_add_name(message: Message, state: FSMContext) -> None:
     await state.update_data(service_name=message.text.strip())
-    await state.set_state(MasterCabinetState.service_add_description)
+    await state.set_state(ServiceCreateState.description)
     await message.answer("Введите описание услуги:")
 
 
-@router.message(MasterCabinetState.service_add_description)
+@router.message(ServiceCreateState.description)
 async def service_add_desc(message: Message, state: FSMContext) -> None:
     await state.update_data(service_description=message.text.strip())
-    await state.set_state(MasterCabinetState.service_add_duration)
-    await message.answer("Введите длительность в минутах:")
+    await state.set_state(ServiceCreateState.duration)
+    await message.answer("Введите длительность услуги в минутах. Например: 30, 60, 90, 120")
 
 
-@router.message(MasterCabinetState.service_add_duration)
+@router.message(ServiceCreateState.duration)
 async def service_add_duration(message: Message, state: FSMContext) -> None:
     try:
         duration = int(message.text)
+        if duration <= 0:
+            raise ValueError
     except ValueError:
-        await message.answer("Введите длительность целым числом.")
+        await message.answer("Введите длительность услуги в минутах. Например: 30, 60, 90, 120")
         return
     await state.update_data(service_duration=duration)
-    await state.set_state(MasterCabinetState.service_add_price)
-    await message.answer("Введите стоимость:")
+    await state.set_state(ServiceCreateState.price)
+    await message.answer("Введите стоимость услуги числом. Например: 1500")
 
 
-@router.message(MasterCabinetState.service_add_price)
+@router.message(ServiceCreateState.price)
 async def service_add_price(message: Message, state: FSMContext, db) -> None:
     try:
         price = float(message.text.replace(",", "."))
+        if price < 0:
+            raise ValueError
     except ValueError:
-        await message.answer("Введите стоимость числом.")
+        await message.answer("Введите стоимость услуги числом. Например: 1500")
         return
 
     data = await state.get_data()
@@ -397,8 +407,87 @@ async def service_add_price(message: Message, state: FSMContext, db) -> None:
     await q.create_service(master["id"], data["service_name"], data["service_description"], data["service_duration"], price)
     await conn.close()
 
+    services = await q.list_master_services(master["id"], active_only=True)
     await state.set_state(MasterCabinetState.services_menu)
-    await message.answer("✅ Услуга добавлена.", reply_markup=MASTER_SERVICES_KB)
+    if services:
+        lines = [
+            f"{idx}. {s['name']}\n⏱ {s['duration_minutes']} мин\n💰 {s['price']} ₽\n📝 {s['description'] or '—'}"
+            for idx, s in enumerate(services, start=1)
+        ]
+        await message.answer("✅ Услуга добавлена.\n\n🛠 Ваши услуги\n\n" + "\n\n".join(lines), reply_markup=MASTER_SERVICES_LIST_KB)
+    else:
+        await message.answer("✅ Услуга добавлена.", reply_markup=MASTER_SERVICES_KB)
+
+
+@router.message(MasterCabinetState.services_menu, F.text == "📋 Мои услуги")
+async def service_list(message: Message, state: FSMContext, db) -> None:
+    conn, q, master = await _master_ctx(message, db)
+    if not master:
+        return
+    services = await q.list_master_services(master["id"], active_only=True)
+    await conn.close()
+
+    await state.set_state(MasterCabinetState.services_menu)
+    if not services:
+        await message.answer("⚠️ У вас пока нет услуг.", reply_markup=MASTER_SERVICES_KB)
+        return
+
+    lines = [
+        f"{idx}. {s['name']}\n⏱ {s['duration_minutes']} мин\n💰 {s['price']} ₽\n📝 {s['description'] or '—'}"
+        for idx, s in enumerate(services, start=1)
+    ]
+    await message.answer("🛠 Ваши услуги\n\n" + "\n\n".join(lines), reply_markup=MASTER_SERVICES_LIST_KB)
+
+
+@router.message(MasterCabinetState.services_menu, F.text == "✏️ Редактировать стоимость")
+async def service_price_pick(message: Message, state: FSMContext, db) -> None:
+    conn, q, master = await _master_ctx(message, db)
+    if not master:
+        return
+    services = await q.list_master_services(master["id"], active_only=True)
+    await conn.close()
+
+    if not services:
+        await message.answer("⚠️ У вас пока нет услуг.", reply_markup=MASTER_SERVICES_KB)
+        return
+
+    await state.set_state(ServiceEditPriceState.pick_service)
+    await message.answer("Выберите услугу:", reply_markup=_services_pick_keyboard(services))
+
+
+@router.message(ServiceEditPriceState.pick_service)
+async def service_price_pick_service(message: Message, state: FSMContext) -> None:
+    sid = _parse_service_id(message.text)
+    if not sid:
+        return
+    await state.update_data(price_service_id=sid)
+    await state.set_state(ServiceEditPriceState.new_price)
+    await message.answer("Введите новую стоимость:")
+
+
+@router.message(ServiceEditPriceState.new_price)
+async def service_price_update(message: Message, state: FSMContext, db) -> None:
+    try:
+        price = float(message.text.replace(",", "."))
+        if price < 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("Введите новую стоимость:")
+        return
+
+    data = await state.get_data()
+    sid = data.get("price_service_id")
+    if not sid:
+        return
+
+    conn, q, master = await _master_ctx(message, db)
+    if not master:
+        return
+    await q.update_service_price(master["id"], sid, price)
+    await conn.close()
+
+    await state.set_state(MasterCabinetState.services_menu)
+    await message.answer("✅ Стоимость услуги обновлена.", reply_markup=MASTER_SERVICES_KB)
 
 
 @router.message(MasterCabinetState.services_menu, F.text == "🗑 Удалить услугу")
@@ -724,7 +813,12 @@ async def settings_range_save(message: Message, state: FSMContext, db) -> None:
 @router.message(MasterCabinetState.settings_menu, F.text == "⌛ Длительность записи мастером")
 async def settings_duration_prompt(message: Message, state: FSMContext) -> None:
     await state.set_state(MasterCabinetState.settings_duration)
-    await message.answer("Введите длительности через запятую (в минутах), например 30,60,90")
+    await message.answer(
+        "⌛ Длительность записи мастером\n\n"
+        "Эта настройка — список длительностей, из которого мастер выбирает время записи при ручном добавлении клиента.\n"
+        "Она не влияет на онлайн-запись клиента: там используется длительность из услуги.\n\n"
+        "Введите длительности через запятую (в минутах), например 30,60,90"
+    )
 
 
 @router.message(MasterCabinetState.settings_duration)
@@ -770,6 +864,12 @@ async def settings_limit_save(message: Message, state: FSMContext, db) -> None:
 
 
 @router.message(MasterCabinetState.menu, F.text == "📊 Статистика")
+async def stats_menu(message: Message, state: FSMContext) -> None:
+    await state.set_state(MasterCabinetState.stats_period)
+    await message.answer("📊 Выберите период:", reply_markup=MASTER_STATS_PERIOD_KB)
+
+
+@router.message(MasterCabinetState.stats_period, F.text.in_({"Неделя", "Месяц", "Год"}))
 async def stats_menu(message: Message) -> None:
     await message.answer("📊 Выберите период:", reply_markup=MASTER_STATS_PERIOD_KB)
 
@@ -797,6 +897,7 @@ async def stats_show(message: Message, db) -> None:
     )
 
 
+@router.message(MasterCabinetState, F.text == "🏠 Главное меню")
 @router.message(F.text == "🏠 Главное меню")
 async def cabinet_home(message: Message, state: FSMContext) -> None:
     current = await state.get_state()
@@ -805,6 +906,7 @@ async def cabinet_home(message: Message, state: FSMContext) -> None:
         await message.answer("Главное меню мастера 👇", reply_markup=MASTER_MAIN_KB)
 
 
+@router.message(MasterCabinetState, F.text == "◀️ Назад")
 @router.message(F.text == "◀️ Назад")
 async def cabinet_back(message: Message, state: FSMContext) -> None:
     current = await state.get_state()
@@ -812,6 +914,46 @@ async def cabinet_back(message: Message, state: FSMContext) -> None:
         if current == MasterCabinetState.menu.state:
             await state.clear()
             await message.answer("Главное меню мастера 👇", reply_markup=MASTER_MAIN_KB)
+        elif current == MasterCabinetState.stats_period.state:
+            await state.set_state(MasterCabinetState.menu)
+            await message.answer("👤 Кабинет мастера", reply_markup=MASTER_CABINET_KB)
+        elif current in {
+            MasterCabinetState.settings_step.state,
+            MasterCabinetState.settings_first_time.state,
+            MasterCabinetState.settings_last_time.state,
+            MasterCabinetState.settings_range.state,
+            MasterCabinetState.settings_duration.state,
+            MasterCabinetState.settings_limit.state,
+        }:
+            await state.set_state(MasterCabinetState.settings_menu)
+            await message.answer("⚙️ Настройки записи", reply_markup=MASTER_SETTINGS_KB)
+        elif current in {
+            MasterCabinetState.profile_edit_name.state,
+            MasterCabinetState.profile_edit_last_name.state,
+            MasterCabinetState.profile_edit_phone.state,
+            MasterCabinetState.profile_edit_birth_date.state,
+            MasterCabinetState.profile_edit_work_start.state,
+            MasterCabinetState.profile_edit_address.state,
+            MasterCabinetState.profile_edit_professions.state,
+        }:
+            await state.set_state(MasterCabinetState.profile_edit_menu)
+            await message.answer("👤 Профиль мастера", reply_markup=MASTER_PROFILE_VIEW_KB)
+        elif current in {
+            MasterCabinetState.service_add_name.state,
+            MasterCabinetState.service_add_description.state,
+            MasterCabinetState.service_add_duration.state,
+            MasterCabinetState.service_add_price.state,
+            MasterCabinetState.service_delete_pick.state,
+            MasterCabinetState.service_delete_confirm.state,
+            ServiceCreateState.name.state,
+            ServiceCreateState.description.state,
+            ServiceCreateState.duration.state,
+            ServiceCreateState.price.state,
+            ServiceEditPriceState.pick_service.state,
+            ServiceEditPriceState.new_price.state,
+        }:
+            await state.set_state(MasterCabinetState.services_menu)
+            await message.answer("🛠 Меню услуг", reply_markup=MASTER_SERVICES_KB)
         else:
             await state.set_state(MasterCabinetState.menu)
             await message.answer("👤 Кабинет мастера", reply_markup=MASTER_CABINET_KB)
