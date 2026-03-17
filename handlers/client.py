@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+import json
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -8,8 +9,6 @@ from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from database.queries import Queries
 from keyboards.client import (
-from keyboards.reply import (
-    CLIENT_DELETE_PROFILE_CONFIRM_KB,
     CLIENT_EDIT_PROFILE_KB,
     CLIENT_MAIN_KB,
     CLIENT_MASTER_MODE_KB,
@@ -45,14 +44,13 @@ async def _client_menu_for_user(message: Message, db):
 
 
 def _master_row(master) -> str:
-    professions = ""
+    professions = "Мастер"
     try:
-        import json
-
         profs = json.loads(master["professions"] or "[]")
-        professions = profs[0] if profs else "Мастер"
+        if profs:
+            professions = profs[0]
     except Exception:
-        professions = "Мастер"
+        pass
     return f"👩‍🎨 {master['first_name']} — {professions} [m:{master['id']}]"
 
 
@@ -104,7 +102,7 @@ async def choose_client(message: Message, db) -> None:
             "💅 Какой маникюр сделать? — идеи и вдохновение.\n"
             "👩‍🎨 Мои мастера — контакты, адрес и прайс.\n"
             "⏳ Лист ожидания — ждать уведомление об окне.",
-            reply_markup=await _client_menu_for_user(message, db)
+            reply_markup=await _client_menu_for_user(message, db),
         )
         return
 
@@ -160,8 +158,6 @@ async def my_profile(message: Message, db, state: FSMContext) -> None:
 async def create_profile_start(message: Message, state: FSMContext) -> None:
     await state.set_state(ClientProfileState.create_first_name)
     await message.answer("Введите имя:")
-
-
 
 
 @router.message(ClientProfileState.create_first_name)
@@ -285,6 +281,7 @@ async def _save_client_field(message: Message, db, field: str, value, state: FSM
         await state.clear()
         await message.answer("Сначала создайте профиль.", reply_markup=CLIENT_NO_PROFILE_KB)
         return
+
     data = {
         "first_name": client["first_name"],
         "last_name": client["last_name"],
@@ -295,6 +292,7 @@ async def _save_client_field(message: Message, db, field: str, value, state: FSM
     await q.upsert_client_profile(message.from_user.id, message.from_user.username, data)
     updated = await q.get_client_by_telegram_id(message.from_user.id)
     await conn.close()
+
     await state.set_state(ClientProfileState.edit_pick_field)
     await message.answer(format_client_profile(updated), reply_markup=CLIENT_PROFILE_KB)
 
@@ -538,8 +536,8 @@ async def my_masters_pick(message: Message, state: FSMContext, db) -> None:
                 await message.answer(f"Откройте чат: https://t.me/{username}")
             else:
                 await message.answer(
-                    "⚠️ У мастера не указан Telegram username. Свяжитесь с мастером по номеру телефона." +
-                    (f"\n{phone}" if phone else "")
+                    "⚠️ У мастера не указан Telegram username. Свяжитесь с мастером по номеру телефона."
+                    + (f"\n{phone}" if phone else "")
                 )
             return
         return
@@ -547,14 +545,17 @@ async def my_masters_pick(message: Message, state: FSMContext, db) -> None:
     conn = await db.connect()
     q = Queries(conn)
     service_list = await q.list_master_active_services(master_id)
-    master = await q.conn.execute("SELECT * FROM masters WHERE id = ?", (master_id,))
-    master = await master.fetchone()
+    cur = await q.conn.execute("SELECT * FROM masters WHERE id = ?", (master_id,))
+    master = await cur.fetchone()
     await conn.close()
     if not master:
         return
 
     price_lines = [f"• {s['name']} — {s['price']}" for s in service_list] or ["—"]
-    await state.update_data(selected_master_username=master["username"], selected_master_phone=master["phone"])
+    await state.update_data(
+        selected_master_username=master["username"],
+        selected_master_phone=master["phone"],
+    )
     await message.answer(
         "👩‍🎨 Мастер\n"
         f"{master['first_name']} {master['last_name'] or ''}\n\n"
@@ -572,6 +573,7 @@ async def see_free_windows(message: Message, db) -> None:
         await conn.close()
         await message.answer("Сначала создайте профиль.")
         return
+
     masters = await q.list_client_masters(client["id"])
     if not masters:
         await conn.close()
@@ -596,8 +598,6 @@ async def see_free_windows(message: Message, db) -> None:
         await message.answer("\n\n".join(chunks))
 
 
-
-
 @router.message(F.text == "💅 Какой маникюр сделать?")
 async def manicure_ideas(message: Message) -> None:
     await message.answer(
@@ -613,6 +613,7 @@ async def client_waitlist_info(message: Message) -> None:
         "📅 Ближайшие окна — уведомление на первое освободившееся время.\n"
         "🗓 Определенная дата — уведомление по выбранным датам."
     )
+
 
 @router.message(F.text == "◀️ Назад")
 async def client_back(message: Message, state: FSMContext, db) -> None:
