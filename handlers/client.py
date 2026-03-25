@@ -1,10 +1,11 @@
-from __future__ import annotations
-
-from datetime import date
-import json
-
-from aiogram import F, Router
-from aiogram.fsm.context import FSMContext
+from keyboards.reply import (
+    CLIENT_EDIT_PROFILE_KB,
+    CLIENT_MAIN_KB,
+    CLIENT_MASTER_MODE_KB,
+    CLIENT_NO_PROFILE_KB,
+    CLIENT_PROFILE_KB,
+    CLIENT_WRITE_MASTER_KB,
+)
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from database.queries import Queries
