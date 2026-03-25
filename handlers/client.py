@@ -9,14 +9,6 @@ from keyboards.reply import (
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from database.queries import Queries
-from keyboards.client import (
-    CLIENT_EDIT_PROFILE_KB,
-    CLIENT_MAIN_KB,
-    CLIENT_MASTER_MODE_KB,
-    CLIENT_NO_PROFILE_KB,
-    CLIENT_PROFILE_KB,
-    CLIENT_WRITE_MASTER_KB,
-)
 from keyboards.confirm import CLIENT_DELETE_PROFILE_CONFIRM_KB
 from keyboards.master import MASTER_MAIN_KB
 from states.client_states import ClientBookingState, ClientMastersState, ClientProfileState
