@@ -27,6 +27,7 @@ from states.master_states import (
     ServiceCreateState,
     ServiceEditPriceState,
 )
+from states.master_states import MasterCabinetState, MasterDeleteProfileState, MasterRegistrationState
 from utils.dates import calculate_experience_text
 from utils.formatters import format_master_profile
 
@@ -551,7 +552,7 @@ async def service_delete_confirm(message: Message, state: FSMContext, db) -> Non
         await message.answer("✅ Услуга удалена.", reply_markup=MASTER_SERVICES_KB)
 
 
-@router.message(MasterCabinetState.service_delete_confirm, F.text == "❌ Отмена")
+@router.message(MasterCabinetState.service_delete_confirm, F.text == "◀️ Отмена")
 async def service_delete_cancel(message: Message, state: FSMContext) -> None:
     await state.set_state(MasterCabinetState.services_menu)
     await message.answer("Удаление отменено.", reply_markup=MASTER_SERVICES_KB)
@@ -883,6 +884,11 @@ async def stats_menu(message: Message, state: FSMContext) -> None:
 
 
 @router.message(MasterCabinetState.stats_period, F.text.in_({"Неделя", "Месяц", "Год"}))
+async def stats_menu(message: Message) -> None:
+    await message.answer("📊 Выберите период:", reply_markup=MASTER_STATS_PERIOD_KB)
+
+
+@router.message(MasterCabinetState.menu, F.text.in_({"Неделя", "Месяц", "Год"}))
 async def stats_show(message: Message, db) -> None:
     days = {"Неделя": 7, "Месяц": 30, "Год": 365}[message.text]
     conn, q, master = await _master_ctx(message, db)
@@ -906,6 +912,7 @@ async def stats_show(message: Message, db) -> None:
 
 
 @router.message(MasterCabinetState, F.text == "🏠 Главное меню")
+@router.message(F.text == "🏠 Главное меню")
 async def cabinet_home(message: Message, state: FSMContext) -> None:
     current = await state.get_state()
     if current and current.startswith("MasterCabinetState"):
@@ -914,6 +921,7 @@ async def cabinet_home(message: Message, state: FSMContext) -> None:
 
 
 @router.message(MasterCabinetState, F.text == "◀️ Назад")
+@router.message(F.text == "◀️ Назад")
 async def cabinet_back(message: Message, state: FSMContext) -> None:
     current = await state.get_state()
     if current and current.startswith("MasterCabinetState"):

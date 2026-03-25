@@ -57,7 +57,8 @@ class MasterWindowsState(StatesGroup):
 
 class MasterCabinetState(StatesGroup):
     menu = State()
-    stats_period = State()
+
+    # услуги / прайс
     price_edit_pick_service = State()
     price_edit_enter_value = State()
     services_menu = State()
@@ -67,6 +68,8 @@ class MasterCabinetState(StatesGroup):
     service_add_price = State()
     service_delete_pick = State()
     service_delete_confirm = State()
+
+    # профиль
     profile_edit_menu = State()
     profile_edit_name = State()
     profile_edit_last_name = State()
@@ -75,6 +78,8 @@ class MasterCabinetState(StatesGroup):
     profile_edit_work_start = State()
     profile_edit_address = State()
     profile_edit_professions = State()
+
+    # настройки
     settings_menu = State()
     settings_step = State()
     settings_first_time = State()
@@ -82,6 +87,9 @@ class MasterCabinetState(StatesGroup):
     settings_range = State()
     settings_duration = State()
     settings_limit = State()
+
+    # 🔥 ВОТ ЭТОГО НЕ ХВАТАЛО
+    stats_period = State()
 
 
 class ServiceCreateState(StatesGroup):
