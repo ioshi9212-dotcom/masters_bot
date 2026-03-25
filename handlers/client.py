@@ -1,4 +1,13 @@
-from keyboards.reply import (
+from __future__ import annotations
+
+from datetime import date
+
+from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
+
+from database.queries import Queries
+from keyboards.client import (
     CLIENT_EDIT_PROFILE_KB,
     CLIENT_MAIN_KB,
     CLIENT_MASTER_MODE_KB,
@@ -538,8 +547,8 @@ async def my_masters_pick(message: Message, state: FSMContext, db) -> None:
     conn = await db.connect()
     q = Queries(conn)
     service_list = await q.list_master_active_services(master_id)
-    cur = await q.conn.execute("SELECT * FROM masters WHERE id = ?", (master_id,))
-    master = await cur.fetchone()
+    master = await q.conn.execute("SELECT * FROM masters WHERE id = ?", (master_id,))
+    master = await master.fetchone()
     await conn.close()
     if not master:
         return

@@ -206,11 +206,25 @@ async def m_profession(message: Message, state: FSMContext) -> None:
 async def m_birth_date(message: Message, state: FSMContext) -> None:
     await state.update_data(birth_date=message.text.strip())
     await state.set_state(MasterRegistrationState.work_start)
-    await message.answer("Введите месяц и год начала работы в формате ММ.ГГГГ")
+    await message.answer(
+        "Введите месяц и год начала работы в формате ММ.ГГГГ\n"
+        "или нажмите ⏭ Пропустить",
+        reply_markup=YES_SKIP_KB,
+    )
 
 
 @router.message(MasterRegistrationState.work_start)
 async def m_work_start(message: Message, state: FSMContext) -> None:
+    if message.text == "⏭ Пропустить":
+        await state.update_data(
+            work_start_month=None,
+            work_start_year=None,
+            work_experience_text=None,
+        )
+        await state.set_state(MasterRegistrationState.phone)
+        await message.answer("Введите номер телефона (обязательно):")
+        return
+
     try:
         month_str, year_str = message.text.strip().split(".")
         month, year = int(month_str), int(year_str)

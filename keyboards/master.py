@@ -94,12 +94,12 @@ MASTER_CABINET_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 MASTER_SERVICES_KB = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="➕ Добавить услугу"), KeyboardButton(text="📋 Мои услуги")],
+        [KeyboardButton(text="➕ Добавить услугу")],
+        [KeyboardButton(text="📋 Мои услуги")],
         [KeyboardButton(text="🗑 Удалить услугу")],
-        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
+        [KeyboardButton(text="◀️ Назад")],
     ],
     resize_keyboard=True,
 )
