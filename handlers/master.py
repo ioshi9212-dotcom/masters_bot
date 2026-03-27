@@ -198,7 +198,7 @@ async def m_profession(message: Message, state: FSMContext) -> None:
         await state.set_state(MasterRegistrationState.work_start)
         await message.answer(
             "Введите месяц и год начала работы в формате ММ.ГГГГ.\n"
-            "Если укажете этот пункт, клиенты будут видеть начало вашего стажа.\n"
+            "Если укажете этот пункт, клиенты будут видеть ваш стаж.\n"
             "Или нажмите ⏭ Пропустить.",
             reply_markup=YES_SKIP_KB,
         )

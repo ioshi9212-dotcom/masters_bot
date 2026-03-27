@@ -35,7 +35,7 @@ CONFIRM_DELETE_ALL_WINDOWS_KB = ReplyKeyboardMarkup(
 MASTER_CONFIRM_DELETE_SERVICE_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✅ Да, удалить")],
-        [KeyboardButton(text="❌ Отмена")],
+        [KeyboardButton(text="◀️ Отмена"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
