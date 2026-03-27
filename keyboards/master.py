@@ -72,10 +72,9 @@ MASTER_WAITLIST_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 MASTER_CABINET_KB = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="💰 Прайс"), KeyboardButton(text="✂️ Услуги")],
+        [KeyboardButton(text="💰 Прайс"), KeyboardButton(text="🛠 Услуги")],
         [KeyboardButton(text="👤 Профиль мастера"), KeyboardButton(text="⚙️ Настройки записи")],
         [KeyboardButton(text="📊 Статистика")],
         [KeyboardButton(text="◀️ Назад")],
@@ -93,13 +92,11 @@ MASTER_SERVICES_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
-# 🔥 ВОТ ЭТОГО У ТЕБЯ НЕ ХВАТАЛО (из-за него была ошибка)
 MASTER_SERVICES_LIST_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать стоимость")],
         [KeyboardButton(text="🗑 Удалить услугу")],
-        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
+        [KeyboardButton(text="◀️ Назад")],
     ],
     resize_keyboard=True,
 )

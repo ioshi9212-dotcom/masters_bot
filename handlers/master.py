@@ -179,6 +179,10 @@ async def m_first_name(message: Message, state: FSMContext) -> None:
 
 @router.message(MasterRegistrationState.last_name)
 async def m_last_name(message: Message, state: FSMContext) -> None:
+    if not message.text:
+        await message.answer("Введите фамилию текстом или нажмите ⏭ Пропустить", reply_markup=YES_SKIP_KB)
+        return
+
     last_name = None if message.text == "⏭ Пропустить" else message.text.strip()
     await state.update_data(last_name=last_name)
     await state.set_state(MasterRegistrationState.birth_date)
@@ -198,7 +202,7 @@ async def m_profession(message: Message, state: FSMContext) -> None:
         await state.set_state(MasterRegistrationState.work_start)
         await message.answer(
             "Введите месяц и год начала работы в формате ММ.ГГГГ.\n"
-            "Если укажете этот пункт, клиенты будут видеть ваш стаж.\n"
+            "Если укажете этот пункт, клиенты будут видеть начало вашего стажа.\n"
             "Или нажмите ⏭ Пропустить.",
             reply_markup=YES_SKIP_KB,
         )
