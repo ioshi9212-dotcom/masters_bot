@@ -1,4 +1,6 @@
 from aiogram import Router
+
+router = Router()
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 

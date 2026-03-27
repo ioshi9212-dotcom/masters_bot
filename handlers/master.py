@@ -27,7 +27,6 @@ from states.master_states import (
     ServiceCreateState,
     ServiceEditPriceState,
 )
-from states.master_states import MasterCabinetState, MasterDeleteProfileState, MasterRegistrationState
 from utils.dates import calculate_experience_text
 from utils.formatters import format_master_profile
 
@@ -81,6 +80,9 @@ def _format_master_full_profile(master) -> str:
 
 @router.message(F.text == "👩‍🎨 Мастер")
 async def choose_master(message: Message, state: FSMContext, db) -> None:
+    # Сбрасываем незавершённые FSM-сценарии перед выбором роли.
+    await state.clear()
+
     conn = await db.connect()
     q = Queries(conn)
     master = await q.get_master_by_telegram_id(message.from_user.id)
@@ -178,9 +180,9 @@ async def m_first_name(message: Message, state: FSMContext) -> None:
 @router.message(MasterRegistrationState.last_name)
 async def m_last_name(message: Message, state: FSMContext) -> None:
     last_name = None if message.text == "⏭ Пропустить" else message.text.strip()
-    await state.update_data(last_name=last_name, professions=[])
-    await state.set_state(MasterRegistrationState.profession)
-    await message.answer("Введите профессию (например, Мастер маникюра):", reply_markup=PROFESSION_DONE_KB)
+    await state.update_data(last_name=last_name)
+    await state.set_state(MasterRegistrationState.birth_date)
+    await message.answer("Введите дату рождения в формате ДД.ММ")
 
 
 @router.message(MasterRegistrationState.profession)
@@ -193,8 +195,13 @@ async def m_profession(message: Message, state: FSMContext) -> None:
         if not professions:
             await message.answer("Добавьте хотя бы одну профессию.")
             return
-        await state.set_state(MasterRegistrationState.birth_date)
-        await message.answer("Введите дату рождения в формате ДД.ММ")
+        await state.set_state(MasterRegistrationState.work_start)
+        await message.answer(
+            "Введите месяц и год начала работы в формате ММ.ГГГГ.\n"
+            "Если укажете этот пункт, клиенты будут видеть ваш стаж.\n"
+            "Или нажмите ⏭ Пропустить.",
+            reply_markup=YES_SKIP_KB,
+        )
         return
 
     professions.append(text)
@@ -204,13 +211,9 @@ async def m_profession(message: Message, state: FSMContext) -> None:
 
 @router.message(MasterRegistrationState.birth_date)
 async def m_birth_date(message: Message, state: FSMContext) -> None:
-    await state.update_data(birth_date=message.text.strip())
-    await state.set_state(MasterRegistrationState.work_start)
-    await message.answer(
-        "Введите месяц и год начала работы в формате ММ.ГГГГ\n"
-        "или нажмите ⏭ Пропустить",
-        reply_markup=YES_SKIP_KB,
-    )
+    await state.update_data(birth_date=message.text.strip(), professions=[])
+    await state.set_state(MasterRegistrationState.profession)
+    await message.answer("Введите профессию (например, Мастер маникюра):", reply_markup=PROFESSION_DONE_KB)
 
 
 @router.message(MasterRegistrationState.work_start)
@@ -222,7 +225,10 @@ async def m_work_start(message: Message, state: FSMContext) -> None:
             work_experience_text=None,
         )
         await state.set_state(MasterRegistrationState.phone)
-        await message.answer("Введите номер телефона (обязательно):")
+        await message.answer(
+            "Введите номер телефона (обязательно).\n"
+            "Этот номер будет виден клиентам для связи."
+        )
         return
 
     try:
@@ -240,7 +246,10 @@ async def m_work_start(message: Message, state: FSMContext) -> None:
         work_experience_text=calculate_experience_text(month, year),
     )
     await state.set_state(MasterRegistrationState.phone)
-    await message.answer("Введите номер телефона (обязательно):")
+    await message.answer(
+        "Введите номер телефона (обязательно).\n"
+        "Этот номер будет виден клиентам для связи."
+    )
 
 
 @router.message(MasterRegistrationState.phone)
@@ -387,7 +396,11 @@ async def service_add_name(message: Message, state: FSMContext) -> None:
 async def service_add_desc(message: Message, state: FSMContext) -> None:
     await state.update_data(service_description=message.text.strip())
     await state.set_state(ServiceCreateState.duration)
-    await message.answer("Введите длительность услуги в минутах. Например: 30, 60, 90, 120")
+    await message.answer(
+        "Введите длительность услуги в минутах. Например: 30, 60, 90, 120\n"
+        "Эта длительность влияет на доступные окна для онлайн-записи клиентов: "
+        "показываются только те окна, куда услуга полностью помещается."
+    )
 
 
 @router.message(ServiceCreateState.duration)
@@ -397,7 +410,10 @@ async def service_add_duration(message: Message, state: FSMContext) -> None:
         if duration <= 0:
             raise ValueError
     except ValueError:
-        await message.answer("Введите длительность услуги в минутах. Например: 30, 60, 90, 120")
+        await message.answer(
+            "Введите длительность услуги в минутах. Например: 30, 60, 90, 120\n"
+            "Эта длительность влияет на доступные окна для онлайн-записи клиентов."
+        )
         return
     await state.update_data(service_duration=duration)
     await state.set_state(ServiceCreateState.price)
@@ -552,7 +568,7 @@ async def service_delete_confirm(message: Message, state: FSMContext, db) -> Non
         await message.answer("✅ Услуга удалена.", reply_markup=MASTER_SERVICES_KB)
 
 
-@router.message(MasterCabinetState.service_delete_confirm, F.text == "◀️ Отмена")
+@router.message(MasterCabinetState.service_delete_confirm, F.text == "❌ Отмена")
 async def service_delete_cancel(message: Message, state: FSMContext) -> None:
     await state.set_state(MasterCabinetState.services_menu)
     await message.answer("Удаление отменено.", reply_markup=MASTER_SERVICES_KB)
@@ -884,11 +900,6 @@ async def stats_menu(message: Message, state: FSMContext) -> None:
 
 
 @router.message(MasterCabinetState.stats_period, F.text.in_({"Неделя", "Месяц", "Год"}))
-async def stats_menu(message: Message) -> None:
-    await message.answer("📊 Выберите период:", reply_markup=MASTER_STATS_PERIOD_KB)
-
-
-@router.message(MasterCabinetState.menu, F.text.in_({"Неделя", "Месяц", "Год"}))
 async def stats_show(message: Message, db) -> None:
     days = {"Неделя": 7, "Месяц": 30, "Год": 365}[message.text]
     conn, q, master = await _master_ctx(message, db)
@@ -912,7 +923,6 @@ async def stats_show(message: Message, db) -> None:
 
 
 @router.message(MasterCabinetState, F.text == "🏠 Главное меню")
-@router.message(F.text == "🏠 Главное меню")
 async def cabinet_home(message: Message, state: FSMContext) -> None:
     current = await state.get_state()
     if current and current.startswith("MasterCabinetState"):
@@ -921,7 +931,6 @@ async def cabinet_home(message: Message, state: FSMContext) -> None:
 
 
 @router.message(MasterCabinetState, F.text == "◀️ Назад")
-@router.message(F.text == "◀️ Назад")
 async def cabinet_back(message: Message, state: FSMContext) -> None:
     current = await state.get_state()
     if current and current.startswith("MasterCabinetState"):

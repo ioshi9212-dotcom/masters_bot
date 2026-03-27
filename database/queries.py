@@ -653,7 +653,6 @@ class Queries:
                 available.append(window)
 
         return available
-        return await cur.fetchall()
 
     async def get_free_window_for_master(self, master_id: int, window_id: int):
         cur = await self.conn.execute(

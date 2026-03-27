@@ -1,6 +1,5 @@
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
-
 MASTER_MAIN_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✍️ Записать клиента"), KeyboardButton(text="📅 Посмотреть записи")],
@@ -11,7 +10,6 @@ MASTER_MAIN_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 MASTER_EXISTS_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✅ Оставить профиль")],
@@ -19,7 +17,6 @@ MASTER_EXISTS_KB = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True,
 )
-
 
 MASTER_BOOKING_ENTRY_KB = ReplyKeyboardMarkup(
     keyboard=[
@@ -29,7 +26,6 @@ MASTER_BOOKING_ENTRY_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 MASTER_CLIENTS_TOP_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать клиента"), KeyboardButton(text="🗑 Удалить клиента")],
@@ -38,7 +34,6 @@ MASTER_CLIENTS_TOP_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 MASTER_APPOINTMENTS_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🗑 Удалить запись"), KeyboardButton(text="🗑 Удалить все записи")],
@@ -46,7 +41,6 @@ MASTER_APPOINTMENTS_KB = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True,
 )
-
 
 MASTER_WINDOWS_KB = ReplyKeyboardMarkup(
     keyboard=[
@@ -57,14 +51,10 @@ MASTER_WINDOWS_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 WINDOWS_PICK_DATE_KB = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")]
-    ],
+    keyboard=[[KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")]],
     resize_keyboard=True,
 )
-
 
 WINDOWS_WORK_KB = ReplyKeyboardMarkup(
     keyboard=[
@@ -73,7 +63,6 @@ WINDOWS_WORK_KB = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True,
 )
-
 
 MASTER_WAITLIST_KB = ReplyKeyboardMarkup(
     keyboard=[
@@ -115,7 +104,6 @@ MASTER_SERVICES_LIST_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 MASTER_PROFILE_EDIT_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="👤 Имя"), KeyboardButton(text="👤 Фамилия")],
@@ -127,7 +115,6 @@ MASTER_PROFILE_EDIT_KB = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-
 MASTER_PROFILE_VIEW_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать профиль")],
@@ -135,7 +122,6 @@ MASTER_PROFILE_VIEW_KB = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True,
 )
-
 
 MASTER_SETTINGS_KB = ReplyKeyboardMarkup(
     keyboard=[
@@ -147,7 +133,6 @@ MASTER_SETTINGS_KB = ReplyKeyboardMarkup(
     ],
     resize_keyboard=True,
 )
-
 
 MASTER_STATS_PERIOD_KB = ReplyKeyboardMarkup(
     keyboard=[
