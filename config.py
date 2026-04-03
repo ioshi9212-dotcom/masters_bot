@@ -16,6 +16,7 @@ class Settings:
     data_dir: Path
     db_path: Path
     backups_dir: Path
+    redis_url: str
 
 
 def load_settings() -> Settings:
@@ -23,6 +24,7 @@ def load_settings() -> Settings:
     data_dir = Path(os.getenv("DATA_DIR", "/data"))
     db_path = Path(os.getenv("DB_PATH", str(data_dir / "bot.db")))
     backups_dir = Path(os.getenv("BACKUPS_DIR", str(data_dir / "backups")))
+    redis_url = os.getenv("REDIS_URL", "").strip()
 
     data_dir.mkdir(parents=True, exist_ok=True)
     backups_dir.mkdir(parents=True, exist_ok=True)
@@ -33,4 +35,5 @@ def load_settings() -> Settings:
         data_dir=data_dir,
         db_path=db_path,
         backups_dir=backups_dir,
+        redis_url=redis_url,
     )
