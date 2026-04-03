@@ -18,15 +18,15 @@ class Settings:
     backups_dir: Path
 
 
-
 def load_settings() -> Settings:
-    bot_token = os.getenv("BOT_TOKEN", "")
+    bot_token = os.getenv("BOT_TOKEN", "").strip()
     data_dir = Path(os.getenv("DATA_DIR", "/data"))
     db_path = Path(os.getenv("DB_PATH", str(data_dir / "bot.db")))
     backups_dir = Path(os.getenv("BACKUPS_DIR", str(data_dir / "backups")))
 
     data_dir.mkdir(parents=True, exist_ok=True)
     backups_dir.mkdir(parents=True, exist_ok=True)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
 
     return Settings(
         bot_token=bot_token,
