@@ -720,9 +720,19 @@ async def client_waitlist_info(message: Message) -> None:
     )
 
 
+@router.message(F.text == "🏠 Главное меню")
+async def client_home(message: Message, state: FSMContext, db) -> None:
+    await state.clear()
+    await message.answer("Главное меню клиента 👇", reply_markup=await _client_menu_for_user(message, db))
+
+
 @router.message(F.text == "◀️ Назад")
 async def client_back(message: Message, state: FSMContext, db) -> None:
     current = await state.get_state()
+
     if current and current.startswith("Client"):
         await state.clear()
         await message.answer("Главное меню клиента 👇", reply_markup=await _client_menu_for_user(message, db))
+        return
+
+    await message.answer("Главное меню клиента 👇", reply_markup=await _client_menu_for_user(message, db))
