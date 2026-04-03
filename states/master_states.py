@@ -89,9 +89,6 @@ class MasterCabinetState(StatesGroup):
     settings_duration = State()
     settings_limit = State()
 
-    # 🔥 ВОТ ЭТОГО НЕ ХВАТАЛО
-    stats_period = State()
-
 
 class ServiceCreateState(StatesGroup):
     name = State()
