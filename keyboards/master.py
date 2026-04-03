@@ -5,7 +5,7 @@ MASTER_MAIN_KB = ReplyKeyboardMarkup(
         [KeyboardButton(text="✍️ Записать клиента"), KeyboardButton(text="📅 Посмотреть записи")],
         [KeyboardButton(text="🕒 Свободные окна"), KeyboardButton(text="⏳ Лист ожидания")],
         [KeyboardButton(text="👤 Кабинет мастера")],
-        [KeyboardButton(text="👤 Меню клиента")],
+        [KeyboardButton(text="👤 Клиент")],
     ],
     resize_keyboard=True,
 )
@@ -77,7 +77,7 @@ MASTER_CABINET_KB = ReplyKeyboardMarkup(
         [KeyboardButton(text="💰 Прайс"), KeyboardButton(text="🛠 Услуги")],
         [KeyboardButton(text="👤 Профиль мастера"), KeyboardButton(text="⚙️ Настройки записи")],
         [KeyboardButton(text="📊 Статистика")],
-        [KeyboardButton(text="◀️ Назад")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
@@ -87,7 +87,7 @@ MASTER_SERVICES_KB = ReplyKeyboardMarkup(
         [KeyboardButton(text="➕ Добавить услугу")],
         [KeyboardButton(text="📋 Мои услуги")],
         [KeyboardButton(text="🗑 Удалить услугу")],
-        [KeyboardButton(text="◀️ Назад")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
@@ -96,7 +96,7 @@ MASTER_SERVICES_LIST_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать стоимость")],
         [KeyboardButton(text="🗑 Удалить услугу")],
-        [KeyboardButton(text="◀️ Назад")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
@@ -107,7 +107,7 @@ MASTER_PROFILE_EDIT_KB = ReplyKeyboardMarkup(
         [KeyboardButton(text="📱 Телефон"), KeyboardButton(text="💼 Профессии")],
         [KeyboardButton(text="🎂 Дата рождения"), KeyboardButton(text="📅 Начало работы в сфере")],
         [KeyboardButton(text="📍 Адрес работы")],
-        [KeyboardButton(text="◀️ Назад")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
@@ -115,7 +115,7 @@ MASTER_PROFILE_EDIT_KB = ReplyKeyboardMarkup(
 MASTER_PROFILE_VIEW_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="✏️ Редактировать профиль")],
-        [KeyboardButton(text="◀️ Назад")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
@@ -126,7 +126,7 @@ MASTER_SETTINGS_KB = ReplyKeyboardMarkup(
         [KeyboardButton(text="🌙 Конец последней записи"), KeyboardButton(text="📆 Записи вперед")],
         [KeyboardButton(text="⌛ Длительность записи мастером")],
         [KeyboardButton(text="⛔ Ограничение записи для клиентов")],
-        [KeyboardButton(text="◀️ Назад")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
@@ -134,7 +134,7 @@ MASTER_SETTINGS_KB = ReplyKeyboardMarkup(
 MASTER_STATS_PERIOD_KB = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="Неделя"), KeyboardButton(text="Месяц"), KeyboardButton(text="Год")],
-        [KeyboardButton(text="◀️ Назад")],
+        [KeyboardButton(text="◀️ Назад"), KeyboardButton(text="🏠 Главное меню")],
     ],
     resize_keyboard=True,
 )
