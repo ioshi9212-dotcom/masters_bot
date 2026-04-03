@@ -5,6 +5,8 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.redis import RedisStorage
+from redis.asyncio import Redis
 
 from config import load_settings
 from database.db import Database
@@ -32,12 +34,27 @@ async def main() -> None:
         await conn.close()
 
     bot = Bot(token=settings.bot_token)
-    dp = Dispatcher(storage=MemoryStorage())
+
+    redis_client = None
+    if settings.redis_url:
+        redis_client = Redis.from_url(settings.redis_url)
+        storage = RedisStorage(redis=redis_client)
+        logging.info("FSM storage: Redis")
+    else:
+        storage = MemoryStorage()
+        logging.warning("FSM storage: MemoryStorage. Состояния будут теряться после перезапуска.")
+
+    dp = Dispatcher(storage=storage)
     dp["db"] = db
     setup_handlers(dp)
 
     logging.info("Бот запускается...")
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
+        if redis_client is not None:
+            await redis_client.aclose()
 
 
 if __name__ == "__main__":
