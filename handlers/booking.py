@@ -48,6 +48,10 @@ MONTHS_RU = {
 }
 
 
+def _safe_text(message: Message) -> str:
+    return (message.text or "").strip()
+
+
 def _display_name(client) -> str:
     return f"{client['first_name'] or ''} {client['last_name'] or ''}".strip() or f"Клиент {client['id']}"
 
@@ -134,10 +138,12 @@ async def _master_or_error(message: Message, db):
     conn = await db.connect()
     q = Queries(conn)
     master = await q.get_master_by_telegram_id(message.from_user.id)
+
     if not master:
         await conn.close()
         await message.answer("Сначала выберите роль мастера через /start")
         return None, None, None
+
     return conn, q, master
 
 
@@ -161,8 +167,11 @@ async def master_clients(message: Message, state: FSMContext, db) -> None:
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    clients = await q.list_master_clients(master["id"])
-    await conn.close()
+
+    try:
+        clients = await q.list_master_clients(master["id"])
+    finally:
+        await conn.close()
 
     if not clients:
         await message.answer(
@@ -180,8 +189,11 @@ async def start_edit_client(message: Message, state: FSMContext, db) -> None:
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    clients = await q.list_master_clients(master["id"])
-    await conn.close()
+
+    try:
+        clients = await q.list_master_clients(master["id"])
+    finally:
+        await conn.close()
 
     if not clients:
         await message.answer("У вас пока нет клиентов для редактирования.", reply_markup=MASTER_BOOKING_ENTRY_KB)
@@ -196,8 +208,11 @@ async def start_delete_client(message: Message, state: FSMContext, db) -> None:
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    clients = await q.list_master_clients(master["id"])
-    await conn.close()
+
+    try:
+        clients = await q.list_master_clients(master["id"])
+    finally:
+        await conn.close()
 
     if not clients:
         await message.answer("У вас пока нет клиентов для удаления.", reply_markup=MASTER_BOOKING_ENTRY_KB)
@@ -209,15 +224,21 @@ async def start_delete_client(message: Message, state: FSMContext, db) -> None:
 
 @router.message(MasterClientsState.viewing)
 async def show_client_card(message: Message, db) -> None:
-    client_id = _parse_client_id(message.text)
+    text = _safe_text(message)
+    client_id = _parse_client_id(text)
     if not client_id:
+        await message.answer("Пожалуйста, выберите клиента из списка 👇")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    client = await q.get_master_client(master["id"], client_id)
-    await conn.close()
+
+    try:
+        client = await q.get_master_client(master["id"], client_id)
+    finally:
+        await conn.close()
+
     if not client:
         await message.answer("Клиент не найден.")
         return
@@ -239,21 +260,32 @@ async def add_client_start(message: Message, state: FSMContext) -> None:
 
 @router.message(MasterClientCreateState.first_name)
 async def add_client_first_name(message: Message, state: FSMContext) -> None:
-    await state.update_data(first_name=message.text.strip())
+    text = _safe_text(message)
+    if not text:
+        await message.answer("Введите имя клиента:")
+        return
+
+    await state.update_data(first_name=text)
     await state.set_state(MasterClientCreateState.last_name)
     await message.answer("Введите фамилию клиента:")
 
 
 @router.message(MasterClientCreateState.last_name)
 async def add_client_last_name(message: Message, state: FSMContext) -> None:
-    await state.update_data(last_name=message.text.strip())
+    text = _safe_text(message)
+    if not text:
+        await message.answer("Введите фамилию клиента:")
+        return
+
+    await state.update_data(last_name=text)
     await state.set_state(MasterClientCreateState.phone)
     await message.answer("Введите номер телефона или нажмите ⏭ Пропустить", reply_markup=SKIP_BACK_HOME_KB)
 
 
 @router.message(MasterClientCreateState.phone)
 async def add_client_phone(message: Message, state: FSMContext) -> None:
-    phone = None if message.text == "⏭ Пропустить" else message.text.strip()
+    text = _safe_text(message)
+    phone = None if text == "⏭ Пропустить" else text
     await state.update_data(phone=phone)
     await state.set_state(MasterClientCreateState.birth_date)
     await message.answer("Введите дату рождения (ДД.ММ) или нажмите ⏭ Пропустить", reply_markup=SKIP_BACK_HOME_KB)
@@ -261,15 +293,19 @@ async def add_client_phone(message: Message, state: FSMContext) -> None:
 
 @router.message(MasterClientCreateState.birth_date)
 async def add_client_birth_date(message: Message, state: FSMContext, db) -> None:
-    birth_date = None if message.text == "⏭ Пропустить" else message.text.strip()
+    text = _safe_text(message)
+    birth_date = None if text == "⏭ Пропустить" else text
     await state.update_data(birth_date=birth_date)
     data = await state.get_data()
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    await q.create_manual_client_for_master(master["id"], data)
-    await conn.close()
+
+    try:
+        await q.create_manual_client_for_master(master["id"], data)
+    finally:
+        await conn.close()
 
     await state.clear()
     await message.answer(
@@ -281,15 +317,21 @@ async def add_client_birth_date(message: Message, state: FSMContext, db) -> None
 
 @router.message(MasterClientEditState.select_client)
 async def edit_select_client(message: Message, state: FSMContext, db) -> None:
-    client_id = _parse_client_id(message.text)
+    text = _safe_text(message)
+    client_id = _parse_client_id(text)
     if not client_id:
+        await message.answer("Пожалуйста, выберите клиента из списка 👇")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    client = await q.get_master_client(master["id"], client_id)
-    await conn.close()
+
+    try:
+        client = await q.get_master_client(master["id"], client_id)
+    finally:
+        await conn.close()
+
     if not client:
         await message.answer("Клиент не найден.")
         return
@@ -309,44 +351,59 @@ async def edit_select_client(message: Message, state: FSMContext, db) -> None:
 
 @router.message(MasterClientEditState.first_name)
 async def edit_client_first_name(message: Message, state: FSMContext) -> None:
-    await state.update_data(first_name=message.text.strip())
+    text = _safe_text(message)
+    if not text:
+        await message.answer("Введите новое имя клиента:")
+        return
+
+    await state.update_data(first_name=text)
     await state.set_state(MasterClientEditState.last_name)
     await message.answer("Введите новую фамилию клиента:")
 
 
 @router.message(MasterClientEditState.last_name)
 async def edit_client_last_name(message: Message, state: FSMContext) -> None:
-    await state.update_data(last_name=message.text.strip())
+    text = _safe_text(message)
+    if not text:
+        await message.answer("Введите новую фамилию клиента:")
+        return
+
+    await state.update_data(last_name=text)
     await state.set_state(MasterClientEditState.phone)
     await message.answer("Введите новый номер телефона или нажмите ⏭ Пропустить", reply_markup=SKIP_BACK_HOME_KB)
 
 
 @router.message(MasterClientEditState.phone)
 async def edit_client_phone(message: Message, state: FSMContext) -> None:
-    await state.update_data(phone=None if message.text == "⏭ Пропустить" else message.text.strip())
+    text = _safe_text(message)
+    await state.update_data(phone=None if text == "⏭ Пропустить" else text)
     await state.set_state(MasterClientEditState.birth_date)
     await message.answer("Введите новую дату рождения (ДД.ММ) или нажмите ⏭ Пропустить", reply_markup=SKIP_BACK_HOME_KB)
 
 
 @router.message(MasterClientEditState.birth_date)
 async def edit_client_birth(message: Message, state: FSMContext, db) -> None:
-    birth_date = None if message.text == "⏭ Пропустить" else message.text.strip()
+    text = _safe_text(message)
+    birth_date = None if text == "⏭ Пропустить" else text
     data = await state.get_data()
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    await q.update_manual_client(
-        data["edit_client_id"],
-        {
-            "first_name": data["first_name"],
-            "last_name": data["last_name"],
-            "phone": data.get("phone"),
-            "birth_date": birth_date,
-        },
-    )
-    clients = await q.list_master_clients(master["id"])
-    await conn.close()
+
+    try:
+        await q.update_manual_client(
+            data["edit_client_id"],
+            {
+                "first_name": data["first_name"],
+                "last_name": data["last_name"],
+                "phone": data.get("phone"),
+                "birth_date": birth_date,
+            },
+        )
+        clients = await q.list_master_clients(master["id"])
+    finally:
+        await conn.close()
 
     await state.set_state(MasterClientsState.viewing)
     await message.answer("✅ Данные клиента обновлены.", reply_markup=_clients_keyboard(clients))
@@ -354,15 +411,21 @@ async def edit_client_birth(message: Message, state: FSMContext, db) -> None:
 
 @router.message(MasterClientDeleteState.select_client)
 async def delete_select_client(message: Message, state: FSMContext, db) -> None:
-    client_id = _parse_client_id(message.text)
+    text = _safe_text(message)
+    client_id = _parse_client_id(text)
     if not client_id:
+        await message.answer("Пожалуйста, выберите клиента из списка 👇")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    client = await q.get_master_client(master["id"], client_id)
-    await conn.close()
+
+    try:
+        client = await q.get_master_client(master["id"], client_id)
+    finally:
+        await conn.close()
+
     if not client:
         await message.answer("Клиент не найден.")
         return
@@ -383,9 +446,12 @@ async def confirm_delete_client(message: Message, state: FSMContext, db) -> None
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    await q.delete_client_from_master(master["id"], data["delete_client_id"])
-    clients = await q.list_master_clients(master["id"])
-    await conn.close()
+
+    try:
+        await q.delete_client_from_master(master["id"], data["delete_client_id"])
+        clients = await q.list_master_clients(master["id"])
+    finally:
+        await conn.close()
 
     await state.set_state(MasterClientsState.viewing)
     if clients:
@@ -400,8 +466,11 @@ async def cancel_delete_client(message: Message, state: FSMContext, db) -> None:
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    clients = await q.list_master_clients(master["id"])
-    await conn.close()
+
+    try:
+        clients = await q.list_master_clients(master["id"])
+    finally:
+        await conn.close()
 
     await state.set_state(MasterClientsState.viewing)
     await message.answer("Удаление отменено.", reply_markup=_clients_keyboard(clients) if clients else MASTER_BOOKING_ENTRY_KB)
@@ -415,8 +484,11 @@ async def view_appointments(message: Message, state: FSMContext, db) -> None:
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    items = await q.list_future_appointments(master["id"])
-    await conn.close()
+
+    try:
+        items = await q.list_future_appointments(master["id"])
+    finally:
+        await conn.close()
 
     await state.set_state(MasterAppointmentsState.viewing)
 
@@ -446,8 +518,11 @@ async def delete_appointment_pick_date(message: Message, state: FSMContext, db) 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    dates = await q.list_appointment_dates_counts(master["id"])
-    await conn.close()
+
+    try:
+        dates = await q.list_appointment_dates_counts(master["id"])
+    finally:
+        await conn.close()
 
     if not dates:
         await message.answer("Нет записей для удаления.", reply_markup=MASTER_APPOINTMENTS_KB)
@@ -462,15 +537,20 @@ async def delete_appointment_pick_date(message: Message, state: FSMContext, db) 
 
 @router.message(MasterAppointmentsState.delete_pick_date)
 async def delete_appointment_pick_item(message: Message, state: FSMContext, db) -> None:
-    date_iso = _parse_date_token(message.text)
+    text = _safe_text(message)
+    date_iso = _parse_date_token(text)
     if not date_iso:
+        await message.answer("Пожалуйста, выберите дату из списка 👇")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    items = await q.list_appointments_by_date(master["id"], date_iso)
-    await conn.close()
+
+    try:
+        items = await q.list_appointments_by_date(master["id"], date_iso)
+    finally:
+        await conn.close()
 
     if not items:
         await message.answer("На этой дате нет записей.")
@@ -485,15 +565,20 @@ async def delete_appointment_pick_item(message: Message, state: FSMContext, db) 
 
 @router.message(MasterAppointmentsState.delete_pick_item)
 async def delete_appointment_action(message: Message, state: FSMContext, db) -> None:
-    appointment_id = _parse_appointment_token(message.text)
+    text = _safe_text(message)
+    appointment_id = _parse_appointment_token(text)
     if not appointment_id:
+        await message.answer("Пожалуйста, выберите запись из списка 👇")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    deleted = await q.delete_appointment(master["id"], appointment_id)
-    await conn.close()
+
+    try:
+        deleted = await q.delete_appointment(master["id"], appointment_id)
+    finally:
+        await conn.close()
 
     if not deleted:
         await message.answer("Запись не найдена.")
@@ -524,8 +609,11 @@ async def delete_all_appointments_action(message: Message, state: FSMContext, db
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    deleted_count = await q.delete_all_future_appointments(master["id"])
-    await conn.close()
+
+    try:
+        deleted_count = await q.delete_all_future_appointments(master["id"])
+    finally:
+        await conn.close()
 
     await state.set_state(MasterAppointmentsState.viewing)
     await message.answer(f"✅ Удалено записей: {deleted_count}", reply_markup=MASTER_APPOINTMENTS_KB)
@@ -545,8 +633,11 @@ async def windows_menu(message: Message, state: FSMContext, db) -> None:
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    windows = await q.list_free_windows(master["id"])
-    await conn.close()
+
+    try:
+        windows = await q.list_free_windows(master["id"])
+    finally:
+        await conn.close()
 
     await state.set_state(MasterWindowsState.viewing)
     if not windows:
@@ -578,16 +669,21 @@ async def windows_add_pick_date(message: Message, state: FSMContext) -> None:
 
 @router.message(MasterWindowsState.add_pick_date)
 async def windows_add_pick_time(message: Message, state: FSMContext, db) -> None:
-    date_iso = _parse_date_token(message.text)
+    text = _safe_text(message)
+    date_iso = _parse_date_token(text)
     if not date_iso:
+        await message.answer("Пожалуйста, выберите дату из списка 👇")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    settings = await q.get_booking_settings(master["id"])
-    existing = await q.list_windows_by_date(master["id"], date_iso)
-    await conn.close()
+
+    try:
+        settings = await q.get_booking_settings(master["id"])
+        existing = await q.list_windows_by_date(master["id"], date_iso)
+    finally:
+        await conn.close()
 
     step = settings["time_step_minutes"] if settings else 30
     first = settings["first_booking_time"] if settings else "10:00"
@@ -614,30 +710,41 @@ async def windows_add_done(message: Message, state: FSMContext) -> None:
 
 @router.message(MasterWindowsState.add_pick_time)
 async def windows_add_time_action(message: Message, state: FSMContext, db) -> None:
-    if message.text in {"◀️ Назад", "🏠 Главное меню", "(нет доступного времени)"}:
+    text = _safe_text(message)
+    if text in {"◀️ Назад", "🏠 Главное меню", "(нет доступного времени)"}:
         return
+
     try:
-        time.fromisoformat(message.text)
+        time.fromisoformat(text)
     except ValueError:
+        await message.answer("Пожалуйста, выберите время из списка 👇")
         return
 
     data = await state.get_data()
     date_iso = data.get("window_date")
     if not date_iso:
+        await state.set_state(MasterWindowsState.add_pick_date)
+        await message.answer("Сначала выберите дату.")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    settings = await q.get_booking_settings(master["id"])
-    step = settings["time_step_minutes"] if settings else 30
-    end_time = _add_minutes(message.text, step)
-    await q.add_free_window(master["id"], date_iso, message.text, end_time)
 
-    existing = await q.list_windows_by_date(master["id"], date_iso)
-    await conn.close()
+    try:
+        settings = await q.get_booking_settings(master["id"])
+        step = settings["time_step_minutes"] if settings else 30
+        first = settings["first_booking_time"] if settings else "10:00"
+        last = settings["last_booking_time"] if settings else "19:00"
 
-    slots = _time_slots(settings["first_booking_time"], settings["last_booking_time"], step) if settings else _time_slots("10:00", "19:00", 30)
+        end_time = _add_minutes(text, step)
+        await q.add_free_window(master["id"], date_iso, text, end_time)
+
+        existing = await q.list_windows_by_date(master["id"], date_iso)
+    finally:
+        await conn.close()
+
+    slots = _time_slots(first, last, step)
     used = {w["start_time"] for w in existing}
     rows = [[KeyboardButton(text=t)] for t in slots if t not in used]
     if not rows:
@@ -653,8 +760,11 @@ async def windows_delete_pick_date(message: Message, state: FSMContext, db) -> N
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    windows = await q.list_free_windows(master["id"])
-    await conn.close()
+
+    try:
+        windows = await q.list_free_windows(master["id"])
+    finally:
+        await conn.close()
 
     if not windows:
         await message.answer("Свободных окон для удаления нет.", reply_markup=MASTER_WINDOWS_KB)
@@ -680,15 +790,20 @@ async def windows_delete_date_done(message: Message, state: FSMContext) -> None:
 
 @router.message(MasterWindowsState.delete_pick_date)
 async def windows_delete_pick_time(message: Message, state: FSMContext, db) -> None:
-    date_iso = _parse_date_token(message.text)
+    text = _safe_text(message)
+    date_iso = _parse_date_token(text)
     if not date_iso:
+        await message.answer("Пожалуйста, выберите дату из списка 👇")
         return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    windows = await q.list_windows_by_date(master["id"], date_iso)
-    await conn.close()
+
+    try:
+        windows = await q.list_windows_by_date(master["id"], date_iso)
+    finally:
+        await conn.close()
 
     if not windows:
         await message.answer("На этой дате окон нет.")
@@ -708,8 +823,11 @@ async def windows_delete_time_done(message: Message, state: FSMContext, db) -> N
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    windows = await q.list_free_windows(master["id"])
-    await conn.close()
+
+    try:
+        windows = await q.list_free_windows(master["id"])
+    finally:
+        await conn.close()
 
     if not windows:
         await state.set_state(MasterWindowsState.viewing)
@@ -722,19 +840,28 @@ async def windows_delete_time_done(message: Message, state: FSMContext, db) -> N
 
 @router.message(MasterWindowsState.delete_pick_time)
 async def windows_delete_time_action(message: Message, state: FSMContext, db) -> None:
-    window_id = _parse_window_token(message.text)
+    text = _safe_text(message)
+    window_id = _parse_window_token(text)
     if not window_id:
+        await message.answer("Пожалуйста, выберите окно из списка 👇")
         return
 
     data = await state.get_data()
     date_iso = data.get("window_date")
+    if not date_iso:
+        await state.set_state(MasterWindowsState.delete_pick_date)
+        await message.answer("Сначала выберите дату.")
+        return
 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    await q.delete_free_window(master["id"], window_id)
-    windows = await q.list_windows_by_date(master["id"], date_iso)
-    await conn.close()
+
+    try:
+        await q.delete_free_window(master["id"], window_id)
+        windows = await q.list_windows_by_date(master["id"], date_iso)
+    finally:
+        await conn.close()
 
     rows = [[KeyboardButton(text=f"{w['start_time']} [w:{w['id']}]")] for w in windows]
     if not rows:
@@ -759,8 +886,11 @@ async def windows_delete_all_action(message: Message, state: FSMContext, db) -> 
     conn, q, master = await _master_or_error(message, db)
     if not master:
         return
-    count = await q.delete_all_free_windows(master["id"])
-    await conn.close()
+
+    try:
+        count = await q.delete_all_free_windows(master["id"])
+    finally:
+        await conn.close()
 
     await state.set_state(MasterWindowsState.viewing)
     await message.answer(f"✅ Удалено окон: {count}", reply_markup=MASTER_WINDOWS_KB)
@@ -872,6 +1002,9 @@ async def booking_back(message: Message, state: FSMContext) -> None:
         await state.set_state(MasterWindowsState.viewing)
         await message.answer("Удаление отменено.", reply_markup=MASTER_WINDOWS_KB)
         return
+
+    await state.clear()
+    await message.answer("Главное меню мастера 👇", reply_markup=MASTER_MAIN_KB)
 
 
 @router.message(F.text == "🏠 Главное меню")
